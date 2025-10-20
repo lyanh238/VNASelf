@@ -1,0 +1,34 @@
+[project]
+name = "calendar-mcp-server"
+version = "0.1.0"
+description = "Google Calendar MCP Server"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=0.9.0",
+    "google-auth-oauthlib>=1.0.0",
+    "google-auth-httplib2>=0.1.0",
+    "google-api-python-client>=2.0.0",
+    "pytz>=2025.2",
+    "langgraph>=0.6.10",
+    "langgraph-prebuilt>=0.6.4",
+    "langgraph-sdk>=0.2.9",
+    "langgraph-checkpoint-sqlite>=2.0.11",
+    "langsmith>=0.4.37",
+    "langchain-community>=0.3.31",
+    "langchain-core>=0.3.79",
+    "langchain-openai>=0.3.35",
+    "notebook>=7.4.7",
+    "tavily-python>=0.7.12",
+    "wikipedia>=1.4.0",
+    "trustcall>=0.0.39",
+    "langgraph-cli[inmem]>=0.4.4",
+    "tornado>=6.5.2",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["calendar_server"]

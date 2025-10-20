@@ -1,0 +1,34 @@
+# Core LangGraph and LangChain dependencies
+langgraph
+langgraph-prebuilt
+langgraph-sdk
+langgraph-checkpoint-sqlite
+langsmith
+langchain-community
+langchain-core
+langchain-openai
+langgraph-cli[inmem]
+
+# MCP (Model Context Protocol) dependencies
+langchain-mcp-adapters
+
+# Google Calendar API dependencies
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+
+# Timezone handling
+pytz
+
+# Async support
+asyncio
+
+# Development dependencies
+notebook
+tavily-python
+wikipedia
+trustcall
+
+# Web interface
+streamlit
