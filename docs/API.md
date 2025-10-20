@@ -156,7 +156,7 @@ Searches events by keywords.
 **Returns**: `str` - Matching events
 
 ##### `create_event`
-Creates a new calendar event.
+Creates a new calendar event (legacy function).
 
 **Parameters**:
 - `title` (str): Event title
@@ -165,6 +165,56 @@ Creates a new calendar event.
 - `description` (str, optional): Event description
 
 **Returns**: `str` - Confirmation of event creation
+
+##### `create_event_with_conflict_check`
+Creates a new calendar event with conflict detection.
+
+**Parameters**:
+- `title` (str): Event title
+- `start_time` (str): Start time in ISO format
+- `end_time` (str): End time in ISO format
+- `description` (str, optional): Event description
+- `force_create` (bool, optional): Force creation even with conflicts
+
+**Returns**: `str` - Confirmation of event creation or conflict information
+
+##### `check_conflicts`
+Checks for scheduling conflicts in a time range.
+
+**Parameters**:
+- `start_time` (str): Start time in ISO format
+- `end_time` (str): End time in ISO format
+
+**Returns**: `str` - Information about conflicting events or confirmation of no conflicts
+
+##### `suggest_alternative_times`
+Suggests alternative time slots when conflicts are detected.
+
+**Parameters**:
+- `start_time` (str): Original start time in ISO format
+- `end_time` (str): Original end time in ISO format
+- `duration_minutes` (int, optional): Duration in minutes (default: 60)
+- `days_ahead` (int, optional): Days to look ahead (default: 7)
+
+**Returns**: `str` - List of suggested alternative time slots
+
+##### `resolve_conflict_by_moving_existing`
+Moves an existing conflicting event to a new time slot.
+
+**Parameters**:
+- `existing_event_id` (str): ID of the existing event to move
+- `new_start_time` (str): New start time in ISO format
+- `new_end_time` (str): New end time in ISO format
+
+**Returns**: `str` - Confirmation of the move operation
+
+##### `resolve_conflict_by_deleting_existing`
+Deletes an existing conflicting event to resolve conflict.
+
+**Parameters**:
+- `existing_event_id` (str): ID of the existing event to delete
+
+**Returns**: `str` - Confirmation of the deletion
 
 ##### `update_event`
 Updates an existing event.

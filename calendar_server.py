@@ -268,15 +268,69 @@ async def search_events(query: str, max_results: int = 10) -> str:
 
 
 @mcp.tool()
-async def create_event(
+async def check_conflicts(
+    start_datetime: str,
+    end_datetime: str
+) -> str:
+    """Check for scheduling conflicts in a time range.
+    
+    Args:
+        start_datetime: Start date and time in ISO format (e.g., '2025-10-20T10:00:00')
+        end_datetime: End date and time in ISO format (e.g., '2025-10-20T11:00:00')
+    
+    Returns:
+        Information about conflicting events or confirmation of no conflicts
+    """
+    try:
+        service = get_calendar_service()
+        
+        # Get events in the time range
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=start_datetime,
+            timeMax=end_datetime,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        
+        events = events_result.get('items', [])
+        
+        if not events:
+            return "No conflicts found. Time slot is available."
+        
+        # Format conflicting events
+        conflict_info = f"Found {len(events)} conflicting event(s):\n\n"
+        for event in events:
+            summary = event.get('summary', 'No Title')
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            end = event['end'].get('dateTime', event['end'].get('date'))
+            event_id = event.get('id', 'Unknown ID')
+            location = event.get('location', '')
+            
+            conflict_info += f"Event ID: {event_id}\n"
+            conflict_info += f"Title: {summary}\n"
+            conflict_info += f"Time: {start} - {end}\n"
+            if location:
+                conflict_info += f"Location: {location}\n"
+            conflict_info += "\n"
+        
+        return conflict_info
+        
+    except Exception as e:
+        return f"Error checking conflicts: {str(e)}"
+
+
+@mcp.tool()
+async def create_event_with_conflict_check(
     summary: str,
     start_datetime: str,
     end_datetime: str,
     description: str = "",
     location: str = "",
-    attendees: str = ""
+    attendees: str = "",
+    force_create: bool = False
 ) -> str:
-    """Create a new calendar event.
+    """Create a new calendar event with conflict detection.
     
     Args:
         summary: Event title/summary
@@ -285,8 +339,15 @@ async def create_event(
         description: Event description (optional)
         location: Event location (optional)
         attendees: Comma-separated email addresses of attendees (optional)
+        force_create: If True, create event even if conflicts exist (default: False)
     """
     try:
+        # Check for conflicts first
+        conflict_check = await check_conflicts(start_datetime, end_datetime)
+        
+        if "No conflicts found" not in conflict_check and not force_create:
+            return f"CONFLICT DETECTED:\n\n{conflict_check}\nPlease resolve conflicts before creating the event. Use force_create=True to override."
+        
         service = get_calendar_service()
         
         # Build event object
@@ -316,10 +377,38 @@ async def create_event(
             sendUpdates='all' if attendees else 'none'
         ).execute()
         
-        return f"Event created successfully!\n{format_event(created_event)}"
+        result = f"Event created successfully!\n{format_event(created_event)}"
+        if force_create and "No conflicts found" not in conflict_check:
+            result = f"WARNING: Event created despite conflicts!\n\n{conflict_check}\n\n{result}"
+        
+        return result
         
     except Exception as e:
         return f"Error creating event: {str(e)}"
+
+
+@mcp.tool()
+async def create_event(
+    summary: str,
+    start_datetime: str,
+    end_datetime: str,
+    description: str = "",
+    location: str = "",
+    attendees: str = ""
+) -> str:
+    """Create a new calendar event (legacy function for backward compatibility).
+    
+    Args:
+        summary: Event title/summary
+        start_datetime: Start date and time in ISO format (e.g., '2025-10-20T10:00:00')
+        end_datetime: End date and time in ISO format (e.g., '2025-10-20T11:00:00')
+        description: Event description (optional)
+        location: Event location (optional)
+        attendees: Comma-separated email addresses of attendees (optional)
+    """
+    return await create_event_with_conflict_check(
+        summary, start_datetime, end_datetime, description, location, attendees, force_create=True
+    )
 
 
 @mcp.tool()
@@ -371,6 +460,170 @@ async def update_event(
         
     except Exception as e:
         return f"Error updating event: {str(e)}"
+
+
+@mcp.tool()
+async def resolve_conflict_by_moving_existing(
+    existing_event_id: str,
+    new_start_datetime: str,
+    new_end_datetime: str
+) -> str:
+    """Move an existing conflicting event to a new time slot.
+    
+    Args:
+        existing_event_id: ID of the existing event to move
+        new_start_datetime: New start time in ISO format
+        new_end_datetime: New end time in ISO format
+    
+    Returns:
+        Confirmation of the move operation
+    """
+    try:
+        service = get_calendar_service()
+        
+        # Get the existing event
+        event = service.events().get(calendarId='primary', eventId=existing_event_id).execute()
+        event_summary = event.get('summary', 'Unknown Event')
+        
+        # Update the event with new times
+        event['start'] = {'dateTime': new_start_datetime, 'timeZone': TIMEZONE}
+        event['end'] = {'dateTime': new_end_datetime, 'timeZone': TIMEZONE}
+        
+        # Update the event
+        updated_event = service.events().update(
+            calendarId='primary',
+            eventId=existing_event_id,
+            body=event,
+            sendUpdates='all'
+        ).execute()
+        
+        return f"Event '{event_summary}' moved successfully!\n{format_event(updated_event)}"
+        
+    except Exception as e:
+        return f"Error moving event: {str(e)}"
+
+
+@mcp.tool()
+async def resolve_conflict_by_deleting_existing(existing_event_id: str) -> str:
+    """Delete an existing conflicting event to resolve conflict.
+    
+    Args:
+        existing_event_id: ID of the existing event to delete
+    
+    Returns:
+        Confirmation of the deletion
+    """
+    try:
+        service = get_calendar_service()
+        
+        # Get event details before deleting
+        event = service.events().get(calendarId='primary', eventId=existing_event_id).execute()
+        event_summary = event.get('summary', 'Unknown Event')
+        
+        # Delete the event
+        service.events().delete(
+            calendarId='primary',
+            eventId=existing_event_id,
+            sendUpdates='all'
+        ).execute()
+        
+        return f"Event '{event_summary}' (ID: {existing_event_id}) deleted successfully to resolve conflict!"
+        
+    except Exception as e:
+        return f"Error deleting event: {str(e)}"
+
+
+@mcp.tool()
+async def suggest_alternative_times(
+    start_datetime: str,
+    end_datetime: str,
+    duration_minutes: int = 60,
+    days_ahead: int = 7
+) -> str:
+    """Suggest alternative time slots when conflicts are detected.
+    
+    Args:
+        start_datetime: Original start time in ISO format
+        end_datetime: Original end time in ISO format
+        duration_minutes: Duration of the event in minutes (default: 60)
+        days_ahead: Number of days to look ahead for alternatives (default: 7)
+    
+    Returns:
+        List of suggested alternative time slots
+    """
+    try:
+        service = get_calendar_service()
+        
+        # Parse original time
+        original_start = datetime.fromisoformat(start_datetime.replace('Z', '+00:00'))
+        original_end = datetime.fromisoformat(end_datetime.replace('Z', '+00:00'))
+        duration = timedelta(minutes=duration_minutes)
+        
+        # Convert to Vietnam timezone
+        original_start = original_start.astimezone(VN_TZ)
+        original_end = original_end.astimezone(VN_TZ)
+        
+        suggestions = []
+        current_date = original_start.date()
+        
+        # Look for alternatives in the next few days
+        for day_offset in range(days_ahead + 1):
+            check_date = current_date + timedelta(days=day_offset)
+            
+            # Check multiple time slots throughout the day
+            time_slots = [
+                (9, 0),   # 9:00 AM
+                (10, 0),  # 10:00 AM
+                (11, 0),  # 11:00 AM
+                (14, 0),  # 2:00 PM
+                (15, 0),  # 3:00 PM
+                (16, 0),  # 4:00 PM
+            ]
+            
+            for hour, minute in time_slots:
+                slot_start = VN_TZ.localize(datetime.combine(check_date, datetime.min.time().replace(hour=hour, minute=minute)))
+                slot_end = slot_start + duration
+                
+                # Check if this slot is available
+                events_result = service.events().list(
+                    calendarId='primary',
+                    timeMin=slot_start.isoformat(),
+                    timeMax=slot_end.isoformat(),
+                    singleEvents=True,
+                    orderBy='startTime'
+                ).execute()
+                
+                events = events_result.get('items', [])
+                
+                if not events:
+                    suggestions.append({
+                        'date': check_date.isoformat(),
+                        'start': slot_start.isoformat(),
+                        'end': slot_end.isoformat(),
+                        'day_name': check_date.strftime('%A'),
+                        'time_str': slot_start.strftime('%H:%M')
+                    })
+                
+                if len(suggestions) >= 5:  # Limit to 5 suggestions
+                    break
+            
+            if len(suggestions) >= 5:
+                break
+        
+        if not suggestions:
+            return "No alternative time slots found in the next 7 days. Please try a different duration or extend the search period."
+        
+        # Format suggestions
+        result = f"Found {len(suggestions)} alternative time slots:\n\n"
+        for i, suggestion in enumerate(suggestions, 1):
+            result += f"{i}. {suggestion['day_name']}, {suggestion['date']} at {suggestion['time_str']}\n"
+            result += f"   Start: {suggestion['start']}\n"
+            result += f"   End: {suggestion['end']}\n\n"
+        
+        return result
+        
+    except Exception as e:
+        return f"Error finding alternative times: {str(e)}"
 
 
 @mcp.tool()

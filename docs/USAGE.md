@@ -264,6 +264,36 @@ Assistant: I'll create a doctor appointment for tomorrow at 2 PM.
 The appointment has been added to your calendar. You'll receive a reminder 15 minutes before the appointment.
 ```
 
+#### Conflict Detection and Resolution
+```
+User: Create a meeting tomorrow at 2:30 PM
+
+Assistant: I'll check for conflicts before creating your meeting.
+
+⚠️ **CONFLICT DETECTED**
+
+Found 1 conflicting event(s):
+
+Event ID: abc123def456
+Title: Doctor Appointment
+Time: 2025-10-21T14:00:00+07:00 - 2025-10-21T15:00:00+07:00
+
+I found a conflict with your existing "Doctor Appointment" from 2:00 PM to 3:00 PM.
+
+Here are your options to resolve this conflict:
+
+**Option 1: Move your new meeting to a different time**
+I can suggest alternative times for your meeting.
+
+**Option 2: Move the existing appointment**
+I can reschedule your "Doctor Appointment" to a different time.
+
+**Option 3: Cancel the existing appointment**
+I can delete the "Doctor Appointment" to make room for your meeting.
+
+Which option would you prefer?
+```
+
 ## Advanced Features
 
 ### Multi-Agent Routing

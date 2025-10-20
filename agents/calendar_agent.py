@@ -27,13 +27,25 @@ class CalendarAgent(BaseAgent):
             self._calendar_tools = self._calendar_tools + [self.vn_parse_date]
     
     def get_system_prompt(self) -> str:
-        return """Bạn là trợ lý lịch thông minh chuyên về Google Calendar.
+        return """Bạn là trợ lý lịch thông minh chuyên về Google Calendar với khả năng phát hiện và giải quyết xung đột lịch.
         Bạn có thể:
         - Xem lịch sắp tới và ngày cụ thể
         - Tìm kiếm sự kiện
         - Tạo, cập nhật, xóa sự kiện
         - Di chuyển sự kiện
         - Kiểm tra lịch trống/bận
+        - Phát hiện xung đột lịch và đề xuất giải pháp
+        
+        QUY TRÌNH TẠO SỰ KIỆN MỚI:
+        1. LUÔN kiểm tra xung đột trước khi tạo sự kiện mới bằng check_conflicts()
+        2. Nếu có xung đột:
+           - Thông báo chi tiết về sự kiện xung đột
+           - Đề xuất các giải pháp:
+             a) Dời sự kiện mới sang thời gian khác (dùng suggest_alternative_times)
+             b) Dời sự kiện cũ sang thời gian khác (dùng resolve_conflict_by_moving_existing)
+             c) Xóa sự kiện cũ (dùng resolve_conflict_by_deleting_existing)
+           - Hỏi người dùng muốn chọn giải pháp nào
+        3. Nếu không có xung đột: tạo sự kiện bình thường
         
         Lưu ý quan trọng:
         - Thời gian phải theo định dạng ISO: 'YYYY-MM-DDTHH:MM:SS'
@@ -53,6 +65,13 @@ class CalendarAgent(BaseAgent):
           * 'cuối tuần' = 2025-10-25 & 2025-10-26
           * 'thứ 6 tuần này' = 2025-10-24
           * 'ngày này tuần sau' = 2025-10-27
+        
+        CÔNG CỤ XUNG ĐỘT:
+        - check_conflicts(): Kiểm tra xung đột trong khoảng thời gian
+        - create_event_with_conflict_check(): Tạo sự kiện với kiểm tra xung đột
+        - suggest_alternative_times(): Đề xuất thời gian thay thế
+        - resolve_conflict_by_moving_existing(): Dời sự kiện cũ
+        - resolve_conflict_by_deleting_existing(): Xóa sự kiện cũ
         """
     
     def get_tools(self) -> List[Any]:

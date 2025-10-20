@@ -39,6 +39,11 @@ class SupervisorAgent(BaseAgent):
    - get_events_for_date: Xem lịch ngày cụ thể (cần format: YYYY-MM-DD)
    - search_events: Tìm kiếm sự kiện theo từ khóa
    - create_event: Tạo sự kiện mới (cần: tiêu đề, thời gian bắt đầu, thời gian kết thúc)
+   - create_event_with_conflict_check: Tạo sự kiện với kiểm tra xung đột
+   - check_conflicts: Kiểm tra xung đột trong khoảng thời gian
+   - suggest_alternative_times: Đề xuất thời gian thay thế khi có xung đột
+   - resolve_conflict_by_moving_existing: Dời sự kiện cũ để giải quyết xung đột
+   - resolve_conflict_by_deleting_existing: Xóa sự kiện cũ để giải quyết xung đột
    - update_event: Cập nhật sự kiện (cần: event_id)
    - delete_event: Xóa sự kiện (cần: event_id)
    - move_event: Di chuyển sự kiện (cần: event_id, thời gian mới)
@@ -59,6 +64,15 @@ class SupervisorAgent(BaseAgent):
   * "Ngày này tuần sau": cùng thứ và ngày trong tuần kế tiếp so với anchor. Ví dụ: nếu anchor là Thứ 2, 2025-10-20 thì "Ngày này tuần sau" = 2025-10-27.
 - Tránh suy luận theo múi giờ khác; tuyệt đối dùng Asia/Ho_Chi_Minh.
 - Nếu người dùng nói 'ngày mai', 'tuần sau', hãy tính toán ngày chính xác theo các quy tắc trên.
+
+QUY TRÌNH XỬ LÝ XUNG ĐỘT LỊCH:
+- Khi tạo sự kiện mới, LUÔN dùng create_event_with_conflict_check thay vì create_event
+- Nếu có xung đột, thông báo chi tiết và đề xuất 3 giải pháp:
+  1) Dời sự kiện mới sang thời gian khác (dùng suggest_alternative_times)
+  2) Dời sự kiện cũ sang thời gian khác (dùng resolve_conflict_by_moving_existing)
+  3) Xóa sự kiện cũ (dùng resolve_conflict_by_deleting_existing)
+- Hỏi người dùng muốn chọn giải pháp nào trước khi thực hiện
+
 - Chỉ chọn một tool phù hợp nhất cho từng yêu cầu"""
     
     def get_tools(self) -> List[Any]:
