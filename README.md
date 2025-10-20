@@ -4,7 +4,7 @@
 
 A sophisticated multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both web interface and command-line access.
 
-## 🚀 Features
+##  Features
 
 ### Health Consultation
 - **Symptom Analysis**: AI-powered analysis of health symptoms
@@ -25,7 +25,7 @@ A sophisticated multi-agent system that combines AI-powered health consultation 
 - **Real-time Processing**: Fast response times with async processing
 - **Error Handling**: Robust error handling and user feedback
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 NekHealth Application
@@ -42,14 +42,14 @@ NekHealth Application
     └── State Manager (Conversation Memory)
 ```
 
-## 📋 Prerequisites
+##  Prerequisites
 
 - Python 3.11+
 - OpenAI API Key
 - Google Calendar API credentials (for calendar features)
 - Internet connection
 
-## 🛠️ Installation
+##  Installation
 
 ### 1. Clone the Repository
 ```bash
@@ -79,7 +79,7 @@ export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
 5. Download the JSON key file
 6. Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable
 
-## 🚀 Usage
+##  Usage
 
 ### Web Interface (Recommended)
 ```bash
@@ -109,7 +109,7 @@ User: "Create a doctor appointment for tomorrow at 2 PM"
 Assistant: "I'll create a doctor appointment for tomorrow at 2 PM..."
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 calendar-mcp-server/
@@ -133,7 +133,7 @@ calendar-mcp-server/
     └── USAGE.md
 ```
 
-## 🔧 Configuration
+##  Configuration
 
 ### Environment Variables
 - `OPENAI_API_KEY`: Your OpenAI API key (required)
@@ -143,7 +143,7 @@ calendar-mcp-server/
 ### Model Settings
 The system uses GPT-4o-mini by default for optimal performance and cost. You can change this in `config.py` or by setting the `OPENAI_MODEL` environment variable.
 
-## 🧪 Testing
+##  Testing
 
 ### Run Examples
 ```bash
@@ -156,7 +156,7 @@ python main.py
 python test_multi_agent.py
 ```
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -193,7 +193,7 @@ python test_multi_agent.py
 2. Review the [API Documentation](docs/API.md)
 3. Check the [Setup Guide](docs/SETUP.md) for detailed installation steps
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -201,18 +201,18 @@ python test_multi_agent.py
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - OpenAI for the GPT models
 - Google for the Calendar API
 - Streamlit for the web interface framework
 - LangGraph for the multi-agent orchestration
 
-## 📞 Support
+##  Support
 
 For support and questions:
 - Create an issue in the repository

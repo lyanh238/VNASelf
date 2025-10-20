@@ -2,7 +2,7 @@
 
 Welcome to the NekHealth documentation! This directory contains comprehensive guides and references for the NekHealth multi-agent system.
 
-## 📚 Documentation Index
+##  Documentation Index
 
 ### Getting Started
 - **[README](../README.md)** - Main project overview and quick start guide
@@ -91,7 +91,7 @@ This documentation is regularly updated to reflect:
 - Resolved issues and workarounds
 - Best practices and recommendations
 
-##📝 Contributing to Documentation
+## Contributing to Documentation
 
 We welcome contributions to improve the documentation:
 
