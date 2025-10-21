@@ -5,6 +5,8 @@ Configuration settings for the Multi-Agent System
 import os
 from typing import Dict, Any
 
+import dotenv
+dotenv.load_dotenv()
 
 class Config:
     """Configuration class for the multi-agent system."""
@@ -15,6 +17,9 @@ class Config:
     
     # Timezone settings
     TIMEZONE = "Asia/Ho_Chi_Minh"
+    
+    # Database settings
+    NEON_DATABASE_URL = os.getenv("NEON_DATABASE_URL")
     
     # MCP settings
     MCP_SERVER_CONFIG = {

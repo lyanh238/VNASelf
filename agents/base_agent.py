@@ -4,7 +4,6 @@ Base Agent class for the multi-agent system
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
-from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 import pytz
 from datetime import datetime
