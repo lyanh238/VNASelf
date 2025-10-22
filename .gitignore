@@ -23,7 +23,7 @@ wheels/
 # Google credentials (IMPORTANT - keep these secret!)
 credentials.json
 token.pickle
-
+token.json
 # Environment
 .env
 .venv
