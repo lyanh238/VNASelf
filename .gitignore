@@ -19,7 +19,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+visualization/.langgraph_api/
 # Google credentials (IMPORTANT - keep these secret!)
 credentials.json
 token.pickle

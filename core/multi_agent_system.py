@@ -204,9 +204,9 @@ class MultiAgentSystem:
                     config = self.state_manager.get_config()
                     thread_id = config["configurable"]["thread_id"]
                     history = await self.get_chat_history(thread_id, limit=5)
-                    print(f"\n📚 Recent conversation ({len(history)} messages):")
+                    print(f"\nNekAssist Recent conversation ({len(history)} messages):")
                     for msg in history:
-                        role = "👤 You" if msg["message_type"] == "user" else f"🤖 {msg['agent_name'] or 'Assistant'}"
+                        role = " You" if msg["message_type"] == "user" else f"NekAssist {msg['agent_name'] or 'Assistant'}"
                         print(f"{role}: {msg['content']}")
                     print()
                     continue
@@ -214,7 +214,7 @@ class MultiAgentSystem:
                 if user_input.lower() == 'threads' and user_id:
                     # Show user's threads
                     threads = await self.get_user_threads(user_id)
-                    print(f"\n📁 Your conversation threads ({len(threads)} threads):")
+                    print(f"\n Your conversation threads ({len(threads)} threads):")
                     for i, thread in enumerate(threads, 1):
                         print(f"  {i}. {thread}")
                     print()

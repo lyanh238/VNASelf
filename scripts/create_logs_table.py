@@ -31,7 +31,7 @@ async def create_logs_table():
     
     try:
         await service.initialize()
-        print("✅ Logs service initialized successfully!")
+        print(" Logs service initialized successfully!")
         
         # Check if table exists
         session = service.get_session()
@@ -39,10 +39,10 @@ async def create_logs_table():
             try:
                 # Try to query the table to see if it exists
                 result = session.execute("SELECT COUNT(*) FROM logs LIMIT 1")
-                print("✅ Logs table already exists and is accessible")
+                print(" Logs table already exists and is accessible")
                 
                 # Show table structure
-                print("\n📋 Current logs table structure:")
+                print("\n Current logs table structure:")
                 result = session.execute("""
                     SELECT column_name, data_type, is_nullable, column_default
                     FROM information_schema.columns 
@@ -76,10 +76,10 @@ async def create_logs_table():
                     
                     session.execute(create_table_sql)
                     session.commit()
-                    print("✅ Logs table created successfully!")
+                    print(" Logs table created successfully!")
                     
                     # Create indexes
-                    print("📊 Creating indexes...")
+                    print(" Creating indexes...")
                     indexes = [
                         "CREATE INDEX IF NOT EXISTS idx_logs_thread_id ON logs(thread_id);",
                         "CREATE INDEX IF NOT EXISTS idx_logs_user_id ON logs(user_id);",
@@ -91,17 +91,17 @@ async def create_logs_table():
                         session.execute(index_sql)
                     
                     session.commit()
-                    print("✅ Indexes created successfully!")
+                    print(" Indexes created successfully!")
                     
                 else:
-                    print(f"❌ Error checking table: {str(e)}")
+                    print(f" Error checking table: {str(e)}")
                     return
         else:
-            print("❌ Could not establish database connection")
+            print(" Could not establish database connection")
             return
         
         # Test table with sample data
-        print("\n🧪 Testing table with sample data...")
+        print("\n Testing table with sample data...")
         
         # Save test message
         test_message = await service.save_message(
@@ -114,22 +114,22 @@ async def create_logs_table():
         )
         
         if test_message:
-            print(f"✅ Test message saved successfully! ID: {test_message.id}")
+            print(f" Test message saved successfully! ID: {test_message.id}")
             print(f"   Timestamp: {test_message.timestamp}")
             print(f"   Thread ID: {test_message.thread_id}")
             
             # Retrieve test message
             messages = await service.get_chat_history("test_table_creation", limit=1)
             if messages:
-                print(f"✅ Test message retrieved successfully!")
+                print(f" Test message retrieved successfully!")
                 print(f"   Content: {messages[0].content}")
                 print(f"   Agent: {messages[0].agent_name}")
             else:
-                print("⚠ Could not retrieve test message")
+                print(" Could not retrieve test message")
         else:
-            print("❌ Failed to save test message")
+            print(" Failed to save test message")
         
-        print("\n🎉 Logs table setup completed successfully!")
+        print("\n Logs table setup completed successfully!")
         print("\nTable structure:")
         print("- id: Primary key")
         print("- thread_id: Conversation thread identifier")
@@ -144,7 +144,7 @@ async def create_logs_table():
         print("- is_deleted: Soft delete flag")
         
     except Exception as e:
-        print(f"❌ Error creating logs table: {str(e)}")
+        print(f" Error creating logs table: {str(e)}")
         import traceback
         traceback.print_exc()
         raise
@@ -154,7 +154,7 @@ async def create_logs_table():
 
 
 if __name__ == "__main__":
-    print("🚀 Starting logs table creation")
+    print(" Starting logs table creation")
     print("Make sure you have set NEON_DATABASE_URL environment variable")
     print()
     
