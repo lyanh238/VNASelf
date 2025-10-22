@@ -1,6 +1,6 @@
-# NekHealth Troubleshooting Guide
+# ViCare Troubleshooting Guide
 
-This guide helps you diagnose and resolve common issues with the NekHealth multi-agent system.
+This guide helps you diagnose and resolve common issues with the ViCare multi-agent system.
 
 ## Table of Contents
 

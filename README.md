@@ -1,6 +1,6 @@
-# NekHealth - Multi-Agent Health & Calendar Assistant
+# ViCare - Multi-Agent Health & Calendar Assistant
 
-![NekHealth Logo](https://www.creativefabrica.com/wp-content/uploads/2023/06/19/Cute-Adorable-Little-Doctor-Kitten-With-Chibi-Dreamy-Eyes-Wearing-72527736-1.png)
+![ViCare Logo](https://www.creativefabrica.com/wp-content/uploads/2023/06/19/Cute-Adorable-Little-Doctor-Kitten-With-Chibi-Dreamy-Eyes-Wearing-72527736-1.png)
 
 A sophisticated multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both web interface and command-line access.
 
@@ -28,7 +28,7 @@ A sophisticated multi-agent system that combines AI-powered health consultation 
 ##  Architecture
 
 ```
-NekHealth Application
+ViCare Application
 ├── Web Interface (Streamlit)
 │   ├── User Input Processing
 │   ├── Real-time Chat Interface

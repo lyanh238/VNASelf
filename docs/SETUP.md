@@ -1,6 +1,6 @@
-# NekHealth Setup Guide
+# ViCare Setup Guide
 
-This guide provides detailed instructions for setting up the NekHealth multi-agent system on different platforms.
+This guide provides detailed instructions for setting up the ViCare multi-agent system on different platforms.
 
 ## Table of Contents
 
@@ -124,7 +124,7 @@ class Config:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click "New Project"
-3. Enter project name (e.g., "NekHealth Calendar")
+3. Enter project name (e.g., "ViCare Calendar")
 4. Click "Create"
 
 ### Step 2: Enable Google Calendar API
@@ -138,8 +138,8 @@ class Config:
 1. Go to "APIs & Services" > "Credentials"
 2. Click "Create Credentials" > "Service Account"
 3. Fill in details:
-   - Name: `nekhealth-calendar`
-   - Description: `Service account for NekHealth calendar integration`
+   - Name: `ViCare-calendar`
+   - Description: `Service account for ViCare calendar integration`
 4. Click "Create and Continue"
 5. Skip role assignment (click "Continue")
 6. Click "Done"

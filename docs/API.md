@@ -1,8 +1,8 @@
-# NekHealth API Documentation
+# ViCare API Documentation
 
 ## Overview
 
-NekHealth provides a multi-agent system with both programmatic and web interfaces. This document covers the API structure, agent interactions, and integration methods.
+ViCare provides a multi-agent system with both programmatic and web interfaces. This document covers the API structure, agent interactions, and integration methods.
 
 ## Core Components
 

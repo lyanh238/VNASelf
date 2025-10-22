@@ -1,6 +1,6 @@
-# NekHealth Usage Guide
+# ViCare Usage Guide
 
-This guide provides comprehensive instructions on how to use the NekHealth multi-agent system effectively.
+This guide provides comprehensive instructions on how to use the ViCare multi-agent system effectively.
 
 ## Table of Contents
 
@@ -42,7 +42,7 @@ When you first open the application, you'll see:
 
 The web interface provides a clean, chat-based experience:
 
-- **Header**: NekHealth logo and restart button
+- **Header**: ViCare logo and restart button
 - **Chat Area**: Conversation history
 - **Input Field**: Type your questions here
 - **Suggestions**: Quick action buttons
