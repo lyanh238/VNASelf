@@ -1,6 +1,8 @@
 # ViCare - Multi-Agent Health & Calendar Assistant
 
-<img src="change/qai_gen.png" alt="ViCare Logo" width="200" height="100"/>
+<p align="center">
+  <img src="change/qai_gen.png" alt="ViCare Logo" width="200" height="200"/>
+</p>
 
 A sophisticated multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both web interface and command-line access.
 
