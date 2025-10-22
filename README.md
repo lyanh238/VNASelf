@@ -1,4 +1,4 @@
-# ViCare - Multi-Agent Health & Calendar Assistant
+# ViCare - Multi-Agent Health & Calendar Assistant (Still working on it)
 
 <p align="center">
   <img src="change/qai_gen.png" alt="ViCare Logo" width="200" height="200"/>
