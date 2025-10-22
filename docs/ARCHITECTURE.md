@@ -1,6 +1,6 @@
-# NekHealth Architecture Documentation
+# ViCare Architecture Documentation
 
-This document provides a comprehensive overview of the NekHealth multi-agent system architecture, design decisions, and technical implementation details.
+This document provides a comprehensive overview of the ViCare multi-agent system architecture, design decisions, and technical implementation details.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This document provides a comprehensive overview of the NekHealth multi-agent sys
 
 ## System Overview
 
-NekHealth is a multi-agent system that combines AI-powered health consultation with Google Calendar integration. The system uses a supervisor-agent pattern to route user requests to specialized agents based on the nature of the query.
+ViCare is a multi-agent system that combines AI-powered health consultation with Google Calendar integration. The system uses a supervisor-agent pattern to route user requests to specialized agents based on the nature of the query.
 
 ### High-Level Architecture
 
