@@ -4,7 +4,8 @@
   <img src="change/qai_gen.png" alt="ViCare Logo" width="200" height="200"/>
 </p>
 
-A sophisticated multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both web interface and command-line access.
+A basic multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both web interface and command-line access. 
+
 
 ##  Features
 
