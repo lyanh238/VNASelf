@@ -114,14 +114,31 @@ def choose_suggestion_callback(sugg: str):
 
 # --------------------------------------------------------------------
 # UI HEADER
-st.html("""
+import base64
+from pathlib import Path
+
+image_path = Path("D:/MCP/calendar-mcp-server/change/qai_gen.png")
+encoded = base64.b64encode(image_path.read_bytes()).decode()
+
+st.html(f"""
 <div style='text-align:center;'>
-    <img src="https://www.creativefabrica.com/wp-content/uploads/2023/06/19/Cute-Adorable-Little-Doctor-Kitten-With-Chibi-Dreamy-Eyes-Wearing-72527736-1.png" 
+    <img src="data:image/png;base64,{encoded}" 
          alt="cat logo" 
          width="80" 
          style="margin-bottom:10px; border-radius:50%;">
 </div>
 """)
+import streamlit as st
+import base64
+
+def get_base64_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
+
+avatar_data = get_base64_image("D:\\MCP\\calendar-mcp-server\\change\\qai_gen.png")
+
+
+
 col1, col2 = st.columns([8, 2])
 with col1:
     st.title("ViCare", anchor=False)
@@ -157,7 +174,7 @@ elif st.session_state.initial_question and not has_message_history:
     with st.chat_message("user", avatar="https://tse3.mm.bing.net/th/id/OIP.ejX7teKaUK7ZaAc4wKpvrwAAAA?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3"):
         st.markdown(user_message)
 
-    with st.chat_message("assistant", avatar="https://www.creativefabrica.com/wp-content/uploads/2023/06/19/Cute-Adorable-Little-Doctor-Kitten-With-Chibi-Dreamy-Eyes-Wearing-72527736-1.png"):
+    with st.chat_message("assistant", avatar= avatar_data):
         with st.spinner("Meowing..."):
             response = send_to_agent(user_message)
         st.markdown(response)
@@ -173,7 +190,7 @@ elif st.session_state.initial_question and not has_message_history:
 else:   
     # render toàn bộ lịch sử
     for msg in st.session_state.messages:
-        with st.chat_message(msg["role"],avatar="https://tse3.mm.bing.net/th/id/OIP.ejX7teKaUK7ZaAc4wKpvrwAAAA?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3" if msg["role"]=="user" else "https://www.creativefabrica.com/wp-content/uploads/2023/06/19/Cute-Adorable-Little-Doctor-Kitten-With-Chibi-Dreamy-Eyes-Wearing-72527736-1.png"):
+        with st.chat_message(msg["role"],avatar="https://tse3.mm.bing.net/th/id/OIP.ejX7teKaUK7ZaAc4wKpvrwAAAA?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3" if msg["role"]=="user" else avatar_data):
             st.markdown(msg["content"])
 
     # ô chat follow-up
@@ -183,7 +200,7 @@ else:
         with st.chat_message("user",avatar="https://tse3.mm.bing.net/th/id/OIP.ejX7teKaUK7ZaAc4wKpvrwAAAA?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3"):
             st.markdown(user_message)
 
-        with st.chat_message("assistant",avatar="https://www.creativefabrica.com/wp-content/uploads/2023/06/19/Cute-Adorable-Little-Doctor-Kitten-With-Chibi-Dreamy-Eyes-Wearing-72527736-1.png"):
+        with st.chat_message("assistant",avatar=avatar_data):
             with st.spinner("Meowing..."):
                 response = send_to_agent(user_message)
             st.markdown(response)
