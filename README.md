@@ -1,19 +1,19 @@
-# ViCare - Multi-Agent Health & Calendar Assistant (Still working on it)
+# ViCare - Multi-Agent Health & Calendar Assistant (Still working on it while I’m an intern )
 
 <p align="center">
   <img src="change/qai_gen.png" alt="ViCare Logo" width="200" height="200"/>
 </p>
 
-A basic multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both web interface and command-line access. 
+A basic multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both a web interface and command-line access. If anyone wonders why my project name sounds similar to another project or organization on GitHub, please forgive me — I just picked a random name and went with it.
 
 
 ##  Features
 
 ### Health Consultation
 - **Symptom Analysis**: AI-powered analysis of health symptoms
-- **Health Advice**: Personalized health recommendations
-- **Medical Guidance**: General medical information and guidance
-- **Wellness Tips**: Diet, exercise, and lifestyle recommendations
+- **Health Advice**: Personalized health recommendations -> don't belive this, believe in your doctor
+- **Medical Guidance**: General medical information and guidance -> i haven't added RAG yet
+- **Wellness Tips**: Diet, exercise, and lifestyle recommendations -> simple LLM task
 
 ### Calendar Management
 - **Event Creation**: Schedule appointments and meetings
