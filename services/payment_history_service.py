@@ -48,7 +48,7 @@ class PaymentHistoryService:
                 self.session = SessionLocal()
             
             self._initialized = True
-
+            
         except Exception as e:
             print(f"✗ Error initializing payment history service: {str(e)}")
             # Don't raise error, just disable payment history
@@ -66,10 +66,12 @@ class PaymentHistoryService:
         amount: float, 
         category: str, 
         date: datetime,
+        user_id: Optional[str] = None
     ) -> Optional[PaymentHistory]:
         """Add a new expense to payment history."""
         if not self.session:
             return None
+        
         try:
             # Validate category
             valid_categories = ["Food", "Transportation", "Miscellaneous"]
@@ -77,6 +79,7 @@ class PaymentHistoryService:
                 raise ValueError(f"Category must be one of: {', '.join(valid_categories)}")
             
             expense = PaymentHistory(
+                user_id=user_id,
                 summary=summary,
                 amount=amount,
                 category=category,
@@ -265,6 +268,7 @@ class PaymentHistoryService:
         amount: Optional[float] = None,
         category: Optional[str] = None,
         date: Optional[datetime] = None,
+        user_id: Optional[str] = None
     ) -> Optional[PaymentHistory]:
         """Update an expense."""
         if not self.session:
@@ -275,6 +279,8 @@ class PaymentHistoryService:
                 .filter(PaymentHistory.id == expense_id)\
                 .filter(PaymentHistory.is_deleted == False)
             
+            if user_id:
+                query = query.filter(PaymentHistory.user_id == user_id)
             
             expense = query.first()
             if not expense:
