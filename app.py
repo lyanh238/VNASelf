@@ -16,7 +16,7 @@ from core import MultiAgentSystem
 if "multi_agent_system" not in st.session_state:
     st.session_state.multi_agent_system = None
 
-st.set_page_config(page_title="VNASelf", page_icon="", layout="centered")
+st.set_page_config(page_title="VNASelf", layout="centered")
 
 st.markdown(
     """
@@ -143,7 +143,7 @@ col1, col2 = st.columns([8, 2])
 with col1:
     st.title("VNASelf", anchor=False)
 with col2:
-    st.button("Restart", icon="🔄", on_click=clear_conversation)
+    st.button("Restart", on_click=clear_conversation)
 
 # --------------------------------------------------------------------
 # STATE FLAGS

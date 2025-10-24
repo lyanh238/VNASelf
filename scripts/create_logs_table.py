@@ -16,12 +16,12 @@ from config import Config
 async def create_logs_table():
     """Create logs table in Neon Database."""
     
-    print("🗄️ Creating logs table in Neon Database")
+    print("Creating logs table in Neon Database")
     print("=" * 60)
     
     # Check configuration
     if not Config.NEON_DATABASE_URL:
-        print("❌ NEON_DATABASE_URL not set!")
+        print("ERROR: NEON_DATABASE_URL not set!")
         print("Please set the environment variable:")
         print("export NEON_DATABASE_URL='postgresql://username:password@host:port/database'")
         return
@@ -55,7 +55,7 @@ async def create_logs_table():
                 
             except Exception as e:
                 if "does not exist" in str(e).lower():
-                    print("⚠ Logs table does not exist, creating it...")
+                    print("WARNING: Logs table does not exist, creating it...")
                     
                     # Create table manually
                     create_table_sql = """

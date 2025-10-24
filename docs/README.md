@@ -2,7 +2,7 @@
 
 Welcome to the VNASelf documentation! This directory contains comprehensive guides and references for the VNASelf multi-agent system.
 
-##  Documentation Index
+## Documentation Index
 
 ### Getting Started
 - **[README](../README.md)** - Main project overview and quick start guide
@@ -10,131 +10,71 @@ Welcome to the VNASelf documentation! This directory contains comprehensive guid
 - **[Usage Guide](USAGE.md)** - How to use the application effectively
 
 ### Technical Documentation
+- **[Architecture Guide](ARCHITECTURE.md)** - System architecture and design decisions
 - **[API Documentation](API.md)** - Complete API reference and integration guide
-- **[Architecture](ARCHITECTURE.md)** - System architecture and design decisions
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Finance Agent Guide](FINANCE_AGENT.md)** - Finance management features and usage
 
-##  Quick Start
+### Troubleshooting
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Common issues and solutions
 
-1. **Installation**: Follow the [Setup Guide](SETUP.md)
-2. **Configuration**: Set up your API keys and Google Calendar
-3. **Usage**: Start with the [Usage Guide](USAGE.md)
-4. **Integration**: Check the [API Documentation](API.md) for programmatic access
+## Quick Start
 
-##  Documentation Structure
+1. **Installation**: Follow the [Setup Guide](SETUP.md) to install and configure VNASelf
+2. **Basic Usage**: Read the [Usage Guide](USAGE.md) to learn how to interact with the system
+3. **Finance Features**: Check the [Finance Agent Guide](FINANCE_AGENT.md) for expense management
+4. **Technical Details**: Review the [Architecture Guide](ARCHITECTURE.md) for system design
 
-```
-docs/
-├── README.md              # This file - documentation index
-├── SETUP.md              # Installation and configuration
-├── USAGE.md              # User guide and examples
-├── API.md                # API reference and integration
-├── ARCHITECTURE.md       # System architecture
-└── TROUBLESHOOTING.md    # Common issues and solutions
-```
+## System Overview
 
-##  For Different Users
+VNASelf is a multi-agent personal assistant that helps you manage:
 
-### End Users
-- Start with [README](../README.md) for overview
-- Follow [Setup Guide](SETUP.md) for installation
-- Use [Usage Guide](USAGE.md) for daily usage
+- **Personal Finance**: Track expenses, view spending history, and analyze your financial habits
+- **Calendar Management**: Schedule events, check availability, and manage your time
+- **Intelligent Routing**: Automatically routes your requests to the appropriate specialized agent
 
-### Developers
-- Read [Architecture](ARCHITECTURE.md) for system design
-- Check [API Documentation](API.md) for integration
-- Use [Troubleshooting](TROUBLESHOOTING.md) for debugging
+## Key Features
 
-### System Administrators
-- Follow [Setup Guide](SETUP.md) for deployment
-- Review [Architecture](ARCHITECTURE.md) for system requirements
-- Use [Troubleshooting](TROUBLESHOOTING.md) for maintenance
-##  Key Features Covered
+### Finance Management
+- Add and track expenses with categories (Food, Transportation, Miscellaneous)
+- View spending history and calculate totals
+- Filter expenses by date ranges
+- Full Vietnamese language support
 
-### Health Consultation
-- Symptom analysis and medical advice
-- Health recommendations and wellness tips
-- Integration with appointment scheduling
+### Calendar Integration
+- Create, update, and delete calendar events
+- Check for scheduling conflicts
+- View upcoming events and availability
+- Intelligent conflict resolution
 
-### Calendar Management
-- Google Calendar integration
-- Event creation, updating, and deletion
-- Availability checking and scheduling
+### Multi-Agent Architecture
+- Supervisor Agent for intelligent routing
+- Finance Agent for expense management
+- Calendar Agent for Google Calendar integration
+- Clear agent identification in responses
 
-### Multi-Agent System
-- Intelligent request routing
-- Conversation memory and context
-- Real-time processing and responses
+## Getting Help
 
-##  Getting Help
+If you encounter any issues:
 
-### Documentation Issues
-- Check the relevant documentation file
-- Look for similar issues in [Troubleshooting](TROUBLESHOOTING.md)
-- Create an issue in the repository
-
-### Technical Support
-- Review [Troubleshooting](TROUBLESHOOTING.md) for common solutions
-- Check the [API Documentation](API.md) for integration help
-- Create an issue with detailed information
-
-### Feature Requests
-- Check the [Architecture](ARCHITECTURE.md) for planned features
-- Create an issue with your feature request
-- Consider contributing to the project
-
-##  Documentation Updates
-
-This documentation is regularly updated to reflect:
-- New features and capabilities
-- Updated installation procedures
-- Resolved issues and workarounds
-- Best practices and recommendations
-
-## Contributing to Documentation
-
-We welcome contributions to improve the documentation:
-
-1. **Fork the repository**
-2. **Make your changes** to the relevant documentation files
-3. **Test your changes** to ensure accuracy
-4. **Submit a pull request** with a clear description
-
-### Documentation Standards
-
-- Use clear, concise language
-- Include code examples where helpful
-- Provide step-by-step instructions
-- Update related sections when making changes
-- Test all procedures before documenting
+1. Check the [Troubleshooting Guide](TROUBLESHOOTING.md) for common solutions
+2. Review the [API Documentation](API.md) for technical details
+3. Read the [Usage Guide](USAGE.md) for proper usage patterns
+4. Create an issue in the repository for specific problems
 
 ## Version Information
 
-This documentation covers:
 - **VNASelf Version**: 1.0.0
-- **Python Version**: 3.11+
-- **Last Updated**: October 2025
+- **Python Requirements**: 3.11+
+- **Dependencies**: See requirements.txt in the main directory
 
-##  Table of Contents by Topic
+## Contributing
 
-### Installation & Setup
-- [Setup Guide](SETUP.md) - Complete installation instructions
-- [Troubleshooting](TROUBLESHOOTING.md) - Installation issues
+We welcome contributions! Please see the main README.md for contribution guidelines.
 
-### Usage & Features
-- [Usage Guide](USAGE.md) - How to use the application
-- [API Documentation](API.md) - Programmatic access
+## License
 
-### Technical Details
-- [Architecture](ARCHITECTURE.md) - System design and components
-- [API Documentation](API.md) - Technical API reference
-
-### Support & Maintenance
-- [Troubleshooting](TROUBLESHOOTING.md) - Common issues and solutions
-- [Setup Guide](SETUP.md) - Configuration and maintenance
+This project is licensed under the MIT License. See the LICENSE file for details.
 
 ---
 
-**Happy using VNASelf! 🐾**
-
-For the most up-to-date information, always refer to the latest version of this documentation.
+**Happy using VNASelf!**
