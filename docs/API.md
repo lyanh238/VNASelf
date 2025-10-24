@@ -2,7 +2,7 @@
 
 ## Overview
 
-ViCare provides a multi-agent system with both programmatic and web interfaces. This document covers the API structure, agent interactions, and integration methods.
+ViCare provides a multi-agent system for calendar management with both programmatic and web interfaces. This document covers the API structure, agent interactions, and integration methods.
 
 ## Core Components
 
@@ -44,7 +44,7 @@ Processes a user message through the multi-agent system.
 
 **Example**:
 ```python
-response = await system.process_message("Create a meeting tomorrow at 2 PM")
+response = await system.process_message("Show me my upcoming events")
 ```
 
 ##### `chat_interactive()`
@@ -85,10 +85,7 @@ Routes user requests to appropriate specialized agents.
 
 #### Tools Available
 
-The supervisor agent has access to all tools from health and calendar agents:
-
-**Health Tools**:
-- `health_consultation_tool`: Provides health advice and symptom analysis
+The supervisor agent has access to all tools from calendar agents:
 
 **Calendar Tools**:
 - `list_upcoming_events`: Lists upcoming calendar events
@@ -100,29 +97,6 @@ The supervisor agent has access to all tools from health and calendar agents:
 - `move_event`: Moves events to different times
 - `get_event_by_id`: Gets event details by ID
 - `check_availability`: Checks calendar availability
-
-### HealthAgent
-
-Provides health consultation and medical advice.
-
-#### Tools
-
-##### `health_consultation_tool`
-Provides health advice based on symptoms and questions.
-
-**Parameters**:
-- `symptoms` (str): Description of symptoms or health concern
-- `question` (str): Specific health question
-
-**Returns**: `str` - Health advice and recommendations
-
-**Example**:
-```python
-response = health_agent.health_consultation_tool(
-    symptoms="headache and fever",
-    question="What should I do?"
-)
-```
 
 ### CalendarAgent
 
@@ -353,7 +327,7 @@ async def main():
     system = MultiAgentSystem()
     await system.initialize()
     
-    response = await system.process_message("I need help with my health")
+    response = await system.process_message("Show me my calendar for today")
     print(response)
     
     await system.close()

@@ -1,7 +1,7 @@
-# ViCare - Multi-Agent Health & Calendar Assistant (Still working on it while I’m an intern )
+# VNASelf - Multi-Agent Individual Assistant (Still working on it while I’m an intern )
 
 <p align="center">
-  <img src="change/qai_gen.png" alt="ViCare Logo" width="200" height="200"/>
+  <img src="change/qai_gen.png" alt="VNASelf Logo" width="200" height="200"/>
 </p>
 
 A basic multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both a web interface and command-line access. If anyone wonders why my project name sounds similar to another project or organization on GitHub, please forgive me — I just picked a random name and went with it.
@@ -31,14 +31,13 @@ A basic multi-agent system that combines AI-powered health consultation with Goo
 ##  Architecture
 
 ```
-ViCare Application
+VNASelf Application
 ├── Web Interface (Streamlit)
 │   ├── User Input Processing
 │   ├── Real-time Chat Interface
 │   └── State Management
 ├── Multi-Agent System
 │   ├── Supervisor Agent (Routing)
-│   ├── Health Agent (Medical Consultation)
 │   └── Calendar Agent (Google Calendar Integration)
 └── Services
     ├── MCP Service (Model Context Protocol)

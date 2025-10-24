@@ -5,6 +5,27 @@ All notable changes to the NekHealth project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-01-27
+
+### Removed
+- **Health Agent**: Removed health consultation functionality and related components
+  - Removed `agents/health_agent.py` file
+  - Removed health-related tools and routing logic
+  - Updated system to focus solely on calendar management
+  - **Reason**: Health consultation features were not aligned with the actual system capabilities and could provide misleading medical advice
+
+### Changed
+- **System Focus**: System now focuses exclusively on Google Calendar management
+- **Documentation**: Updated all documentation to remove health-related references
+- **Architecture**: Simplified multi-agent system to calendar-only functionality
+- **Routing Logic**: Updated supervisor agent to route only calendar and general queries
+
+### Technical Details
+- **Agent Removal**: Removed HealthAgent from agent imports and initialization
+- **Graph Updates**: Updated LangGraph visualization to remove health agent nodes
+- **Documentation Cleanup**: Removed health sections from README, API docs, architecture docs, and usage guides
+- **System Simplification**: Streamlined system to focus on calendar management capabilities
+
 ## [1.0.0] - 2025-10-20
 
 ### Added

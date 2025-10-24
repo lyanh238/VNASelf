@@ -9,9 +9,10 @@ from googleapiclient.discovery import build
 import pickle
 import pytz
 mcp = FastMCP("google_calendar")
-
+import os,sys
 # If modifying these scopes, delete the token.pickle file
 SCOPES = ['https://www.googleapis.com/auth/calendar']
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Timezone setting for Vietnam
 TIMEZONE = 'Asia/Ho_Chi_Minh'

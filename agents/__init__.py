@@ -1,9 +1,9 @@
 """
-Multi-Agent System for Health and Calendar Management
+Multi-Agent System for Calendar Management
 """
 
-from .health_agent import HealthAgent
 from .calendar_agent import CalendarAgent
 from .supervisor_agent import SupervisorAgent
+from .finance_agent import FinanceAgent
 
-__all__ = ['HealthAgent', 'CalendarAgent', 'SupervisorAgent']
+__all__ = ['CalendarAgent', 'SupervisorAgent', 'FinanceAgent']

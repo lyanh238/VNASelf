@@ -9,25 +9,28 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-from agents import HealthAgent, CalendarAgent, SupervisorAgent
+from agents import CalendarAgent, SupervisorAgent, FinanceAgent
 from services import MCPService
 from services.chat_history_service import LogsService
+from services.payment_history_service import PaymentHistoryService
 from .state_manager import StateManager
 
 
 class MultiAgentSystem:
     """Main orchestrator for the multi-agent system."""
+
     
     def __init__(self, model_name: str = "gpt-4o-mini"):
         self.model = ChatOpenAI(model=model_name)
         self.mcp_service = MCPService()
         self.logs_service = LogsService()
+        self.payment_service = PaymentHistoryService()
         self.state_manager = StateManager()
         
         # Initialize agents
-        self.health_agent = HealthAgent(self.model)
         self.calendar_agent = CalendarAgent(self.model, self.mcp_service)
-        self.supervisor_agent = SupervisorAgent(self.model, self.health_agent, self.calendar_agent)
+        self.finance_agent = FinanceAgent(self.model, self.payment_service)
+        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent)
         
         self.graph = None
         self._initialized = False
@@ -42,10 +45,13 @@ class MultiAgentSystem:
         # Initialize logs service
         await self.logs_service.initialize()
         
+        # Initialize payment history service
+        await self.payment_service.initialize()
+        
         # Initialize MCP service
         await self.mcp_service.initialize()
         
-        # Initialize supervisor agent (which initializes calendar agent)
+        # Initialize supervisor agent (which initializes calendar and finance agents)
         await self.supervisor_agent.initialize()
         
         # Build the graph
@@ -118,22 +124,37 @@ class MultiAgentSystem:
         # Get the last message (agent's response)
         response = result["messages"][-1].content
         
-        # Determine which agent handled the response
-        agent_name = "Unknown"
-        if hasattr(result["messages"][-1], 'additional_kwargs') and 'tool_calls' in result["messages"][-1].additional_kwargs:
-            # Try to determine agent from tool calls
-            tool_calls = result["messages"][-1].additional_kwargs.get('tool_calls', [])
-            if tool_calls:
-                tool_name = tool_calls[0].get('function', {}).get('name', '')
-                if 'health' in tool_name.lower():
-                    agent_name = "Health Agent"
-                elif 'calendar' in tool_name.lower():
-                    agent_name = "Calendar Agent"
-                else:
-                    agent_name = "Supervisor Agent"
-        else:
-            # Default to supervisor if no tool calls
-            agent_name = "Supervisor Agent"
+        # Determine which agent handled the response by analyzing the response content and tool usage
+        agent_name = "Supervisor Agent"  # Default
+        
+        # Check if any tools were called by looking at the conversation flow
+        tool_calls_found = False
+        for message in result["messages"]:
+            if hasattr(message, 'additional_kwargs') and 'tool_calls' in message.additional_kwargs:
+                tool_calls = message.additional_kwargs.get('tool_calls', [])
+                if tool_calls:
+                    tool_calls_found = True
+                    tool_name = tool_calls[0].get('function', {}).get('name', '')
+                    
+                    # Check for finance tools
+                    if any(fin_tool in tool_name.lower() for fin_tool in ['add_expense', 'get_expense', 'delete_expense', 'update_expense', 'get_total_spending']):
+                        agent_name = "Finance Agent"
+                        break
+                    # Check for calendar tools
+                    elif any(cal_tool in tool_name.lower() for cal_tool in ['list_upcoming_events', 'create_event', 'get_events', 'delete_event', 'update_event', 'move_event']):
+                        agent_name = "Calendar Agent"
+                        break
+        
+        # If no tool calls found, try to determine from response content
+        if not tool_calls_found:
+            response_lower = response.lower()
+            if any(keyword in response_lower for keyword in ['chi tiêu', 'expense', 'vnd', 'tổng chi tiêu', 'lịch sử chi tiêu']):
+                agent_name = "Finance Agent"
+            elif any(keyword in response_lower for keyword in ['lịch', 'sự kiện', 'event', 'calendar', 'thời gian']):
+                agent_name = "Calendar Agent"
+        
+        # Format response with agent information
+        formatted_response = f"[{agent_name}] {response}"
         
         # Save assistant response to logs
         await self.logs_service.save_message(
@@ -146,7 +167,7 @@ class MultiAgentSystem:
             timestamp=current_timestamp + 1  # Slightly after user message
         )
         
-        return response
+        return formatted_response
     
     async def get_chat_history(self, thread_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Get conversation logs for a thread."""
@@ -172,7 +193,7 @@ class MultiAgentSystem:
             await self.initialize()
         
         print("=" * 60)
-        print(" Multi-Agent System (Health + Calendar)")
+        print(" Multi-Agent System (Calendar)")
         print("=" * 60)
         print("Special commands:")
         print("  - 'exit' or 'quit': Exit")
@@ -223,7 +244,7 @@ class MultiAgentSystem:
                 # Process the message
                 print("\ Processing...\n")
                 response = await self.process_message(user_input, user_id=user_id)
-                print(f"Assistant: {response}\n")
+                print(f"{response}\n")
                 print("-" * 60)
                 
             except KeyboardInterrupt:
@@ -242,10 +263,6 @@ class MultiAgentSystem:
         print("=" * 60 + "\n")
         
         examples = [
-            {
-                "name": "Health Consultation",
-                "query": "I have a headache and mild fever, what should I do?"
-            },
             {
                 "name": "View Upcoming Events",
                 "query": "Show me the next 5 events in my calendar"
@@ -280,4 +297,5 @@ class MultiAgentSystem:
         """Close the system and cleanup resources."""
         await self.mcp_service.close()
         await self.logs_service.close()
+        await self.payment_service.close()
         print(" Multi-Agent System closed.")
