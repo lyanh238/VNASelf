@@ -69,8 +69,6 @@ async def create_logs_table():
                         metadata TEXT,
                         timestamp BIGINT NOT NULL,
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                        is_deleted BOOLEAN DEFAULT FALSE
                     );
                     """
                     
@@ -140,9 +138,6 @@ async def create_logs_table():
         print("- metadata: JSON metadata")
         print("- timestamp: Unix timestamp in milliseconds")
         print("- created_at: Database creation timestamp")
-        print("- updated_at: Last update timestamp")
-        print("- is_deleted: Soft delete flag")
-        
     except Exception as e:
         print(f" Error creating logs table: {str(e)}")
         import traceback
