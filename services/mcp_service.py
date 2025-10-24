@@ -4,7 +4,7 @@ MCP Service for managing Google Calendar MCP client
 
 from typing import List, Any
 from langchain_mcp_adapters.client import MultiServerMCPClient
-
+import os
 
 class MCPService:
     """Service for managing MCP client connections and tools."""
@@ -16,10 +16,14 @@ class MCPService:
     async def initialize(self):
         """Initialize the MCP client."""
         if self.client is None:
+            # Compute absolute path to calendar_server.py
+            calendar_server_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "server", "calendar_server.py")
+            )
             self.client = MultiServerMCPClient({
                 "google_calendar": {
                     "command": "python",
-                    "args": ["calendar_server.py"],
+                    "args": [calendar_server_path],
                     "transport": "stdio",
                 }
             })

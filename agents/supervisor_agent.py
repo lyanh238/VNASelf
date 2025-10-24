@@ -7,26 +7,39 @@ from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from .base_agent import BaseAgent
 from .calendar_agent import CalendarAgent
+from .finance_agent import FinanceAgent
 
 
 class SupervisorAgent(BaseAgent):
     """Supervisor agent that routes requests to appropriate specialized agents."""
     
-    def __init__(self, model: ChatOpenAI, calendar_agent: CalendarAgent):
+    def __init__(self, model: ChatOpenAI, calendar_agent: CalendarAgent, finance_agent: FinanceAgent):
         super().__init__(model)
         self.name = "Supervisor Agent"
         self.calendar_agent = calendar_agent
+        self.finance_agent = finance_agent
         self._all_tools = None
     
     async def initialize(self):
         """Initialize the supervisor with all available tools."""
         await self.calendar_agent.initialize()
-        self._all_tools =  self.calendar_agent.get_tools()
+        await self.finance_agent.initialize()
+        self._all_tools = self.calendar_agent.get_tools() + self.finance_agent.get_tools()
     
     def get_system_prompt(self) -> str:
         return """Bạn là supervisor thông minh chọn công cụ phù hợp để giải quyết yêu cầu người dùng.
 
  Phân loại công cụ:
+
+# 1. Tài chính (Finance tools):
+   - add_expense: Thêm chi tiêu mới (summary, amount, category, date)
+   - get_expense_history: Xem lịch sử chi tiêu
+   - get_expenses_by_category: Lọc chi tiêu theo danh mục (Food, Transportation, Miscellaneous)
+   - get_expenses_by_date_range: Xem chi tiêu trong khoảng thời gian
+   - get_total_spending: Tính tổng chi tiêu
+   - delete_expense: Xóa chi tiêu
+   - update_expense: Cập nhật thông tin chi tiêu
+
 # 2. Lịch Google Calendar (các MCP tools):
    - list_upcoming_events: Xem lịch sắp tới
    - get_events_for_date: Xem lịch ngày cụ thể (cần format: YYYY-MM-DD)
