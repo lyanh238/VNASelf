@@ -10,6 +10,12 @@ If anyone wonders why my project name sounds similar to another project or organ
 
 ##  Features
 
+### Health Consultation
+- **Symptom Analysis**: AI-powered analysis of health symptoms
+- **Health Advice**: Personalized health recommendations -> don't belive this, believe in your doctor
+- **Medical Guidance**: General medical information and guidance -> i haven't added RAG yet
+- **Wellness Tips**: Diet, exercise, and lifestyle recommendations -> simple LLM task
+
 ### Calendar Management
 - **Event Creation**: Schedule appointments and meetings
 - **Event Management**: Update, delete, and move calendar events
