@@ -1,6 +1,6 @@
-# ViCare Documentation
+# VNASelf Documentation
 
-Welcome to the ViCare documentation! This directory contains comprehensive guides and references for the ViCare multi-agent system.
+Welcome to the VNASelf documentation! This directory contains comprehensive guides and references for the VNASelf multi-agent system.
 
 ##  Documentation Index
 
@@ -111,7 +111,7 @@ We welcome contributions to improve the documentation:
 ## Version Information
 
 This documentation covers:
-- **ViCare Version**: 1.0.0
+- **VNASelf Version**: 1.0.0
 - **Python Version**: 3.11+
 - **Last Updated**: October 2025
 
@@ -135,6 +135,6 @@ This documentation covers:
 
 ---
 
-**Happy using ViCare! 🐾**
+**Happy using VNASelf! 🐾**
 
 For the most up-to-date information, always refer to the latest version of this documentation.

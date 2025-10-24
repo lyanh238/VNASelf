@@ -1,6 +1,6 @@
-# ViCare Architecture Documentation
+# VNASelf Architecture Documentation
 
-This document provides a comprehensive overview of the ViCare multi-agent calendar system architecture, design decisions, and technical implementation details.
+This document provides a comprehensive overview of the VNASelf multi-agent calendar system architecture, design decisions, and technical implementation details.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This document provides a comprehensive overview of the ViCare multi-agent calend
 
 ## System Overview
 
-ViCare is a multi-agent system for Google Calendar integration. The system uses a supervisor-agent pattern to route user requests to specialized agents based on the nature of the query.
+VNASelf is a multi-agent system for Google Calendar integration. The system uses a supervisor-agent pattern to route user requests to specialized agents based on the nature of the query.
 
 ### High-Level Architecture
 

@@ -1,6 +1,6 @@
-# ViCare Troubleshooting Guide
+# VNASelf Troubleshooting Guide
 
-This guide helps you diagnose and resolve common issues with the ViCare multi-agent system.
+This guide helps you diagnose and resolve common issues with the VNASelf multi-agent system.
 
 ## Table of Contents
 
