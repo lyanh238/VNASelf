@@ -1,8 +1,8 @@
-# ViCare API Documentation
+# VNASelf API Documentation
 
 ## Overview
 
-ViCare provides a multi-agent system for calendar management with both programmatic and web interfaces. This document covers the API structure, agent interactions, and integration methods.
+VNASelf provides a multi-agent system for calendar management with both programmatic and web interfaces. This document covers the API structure, agent interactions, and integration methods.
 
 ## Core Components
 
