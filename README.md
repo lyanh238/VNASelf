@@ -1,11 +1,12 @@
-# VNASelf - Multi-Agent Personal Assistant
+# VNASelf - Multi-Agent Personal Assistant (Still working on it while I’m an intern )
 
 <p align="center">
   <img src="change/qai_gen.png" alt="VNASelf Logo" width="200" height="200"/>
 </p>
 
-A sophisticated multi-agent system for personal finance management and Google Calendar integration, featuring both web interface and command-line access.
+A basic multi-agent system for personal finance management and Google Calendar integration, featuring both web interface and command-line access.
 
+If anyone wonders why my project name sounds similar to another project or organization on GitHub, please forgive me — I just picked a random name and went with it.
 ## Features
 
 ### Finance Management
