@@ -54,7 +54,7 @@ async def initialize_services():
         await logs_service.initialize()
         print("✓ Logs service initialized")
     except Exception as e:
-        print(f"⚠ Logs service initialization failed: {e}")
+        print(f"WARNING: Logs service initialization failed: {e}")
     
     try:
         # Initialize MCP service with calendar server
@@ -67,24 +67,24 @@ async def initialize_services():
             calendar_tools = await mcp_service.get_calendar_tools()
             print(f"✓ Successfully loaded {len(calendar_tools)} calendar tools from calendar_server.py")
         except Exception as e:
-            print(f"⚠ Failed to load calendar tools: {e}")
+            print(f"WARNING: Failed to load calendar tools: {e}")
             
     except Exception as e:
-        print(f"⚠ MCP service initialization failed: {e}")
+        print(f"WARNING: MCP service initialization failed: {e}")
     
     try:
         # Initialize supervisor agent
         await supervisor_agent.initialize()
         print("✓ Supervisor agent initialized")
     except Exception as e:
-        print(f"⚠ Supervisor agent initialization failed: {e}")
+        print(f"WARNING: Supervisor agent initialization failed: {e}")
     
     try:
         # Initialize calendar agent with MCP tools
         await calendar_agent_instance.initialize()
         print("✓ Calendar agent initialized with MCP tools")
     except Exception as e:
-        print(f"⚠ Calendar agent initialization failed: {e}")
+        print(f"WARNING: Calendar agent initialization failed: {e}")
     
     print("Service initialization completed!")
 
@@ -94,7 +94,7 @@ def ensure_services_initialized():
     # This will be called by nodes when they need services
     pass
 
-# 1️⃣ Node definitions with full multi-agents system
+# Node definitions with full multi-agents system
 def input_processor(state: State):
     """Process input messages with logging"""
     print("Input Processor Node activated.")
@@ -235,7 +235,7 @@ async def calendar_agent(state: State):
             HumanMessage(content=user_input)
         ]
 
-        # ✅ Non-blocking model invocation with MCP tools
+        # Non-blocking model invocation with MCP tools
         try:
             calendar_model_with_tools = calendar_agent_instance.model.bind_tools(
                 calendar_agent_instance.get_tools()
@@ -251,7 +251,7 @@ async def calendar_agent(state: State):
 
         print(f"Calendar response: {response.content[:100]}...")
 
-        # ✅ Logging non-blocking
+        # Logging non-blocking
         if logs_service and logs_service.session:
             asyncio.create_task(logs_service.save_message(
                 thread_id="default_thread",
@@ -463,10 +463,10 @@ def calendar_router_condition(state: State):
         return "response_formatter"
 
         
-# 2️⃣ Create builder with state manager
+# Create builder with state manager
 builder = StateGraph(State)
 
-# 3️⃣ Add nodes
+# Add nodes
 builder.add_node("input_processor", input_processor)
 builder.add_node("supervisor", supervisor)
 builder.add_node("calendar_agent", calendar_agent)
@@ -496,7 +496,7 @@ builder.add_edge("mcp_tools", "response_formatter")
 builder.add_edge("general_agent", "response_formatter")
 builder.add_edge("response_formatter", END)
 
-# 5️⃣ Compile with state manager and tracing
+# Compile with state manager and tracing
 graph = builder.compile()
 
 

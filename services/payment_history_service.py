@@ -35,13 +35,13 @@ class PaymentHistoryService:
                     Base.metadata.create_all(self.engine)
                     print("✓ Payment History Service connected to Neon Database")
                 except Exception as e:
-                    print(f"⚠ Table creation warning: {str(e)}")
+                    print(f"WARNING: Table creation warning: {str(e)}")
                     # Try to use existing table
                     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
                     self.session = SessionLocal()
                     print("✓ Payment History Service connected to existing payment_history table")
             else:
-                print("⚠ NEON_DATABASE_URL not set - payment history will not be saved")
+                print("WARNING: NEON_DATABASE_URL not set - payment history will not be saved")
             
             if not self.session:
                 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
