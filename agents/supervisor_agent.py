@@ -6,34 +6,27 @@ from typing import List, Any, Dict
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from .base_agent import BaseAgent
-from .health_agent import HealthAgent
 from .calendar_agent import CalendarAgent
 
 
 class SupervisorAgent(BaseAgent):
     """Supervisor agent that routes requests to appropriate specialized agents."""
     
-    def __init__(self, model: ChatOpenAI, health_agent: HealthAgent, calendar_agent: CalendarAgent):
+    def __init__(self, model: ChatOpenAI, calendar_agent: CalendarAgent):
         super().__init__(model)
         self.name = "Supervisor Agent"
-        self.health_agent = health_agent
         self.calendar_agent = calendar_agent
         self._all_tools = None
     
     async def initialize(self):
         """Initialize the supervisor with all available tools."""
         await self.calendar_agent.initialize()
-        self._all_tools = self.health_agent.get_tools() + self.calendar_agent.get_tools()
+        self._all_tools =  self.calendar_agent.get_tools()
     
     def get_system_prompt(self) -> str:
         return """Bạn là supervisor thông minh chọn công cụ phù hợp để giải quyết yêu cầu người dùng.
 
  Phân loại công cụ:
-
-# 1. Sức khỏe (health_consultation_tool):
-   - Triệu chứng bệnh, sức khỏe, khám bệnh
-   - VD: đau đầu, sốt, ho, mệt mỏi
-
 # 2. Lịch Google Calendar (các MCP tools):
    - list_upcoming_events: Xem lịch sắp tới
    - get_events_for_date: Xem lịch ngày cụ thể (cần format: YYYY-MM-DD)

@@ -175,7 +175,7 @@ elif st.session_state.initial_question and not has_message_history:
         st.markdown(user_message)
 
     with st.chat_message("assistant", avatar= avatar_data):
-        with st.spinner("Meowing..."):
+        with st.spinner("Processing..."):
             response = send_to_agent(user_message)
         st.markdown(response)
 
@@ -201,7 +201,7 @@ else:
             st.markdown(user_message)
 
         with st.chat_message("assistant",avatar=avatar_data):
-            with st.spinner("Meowing..."):
+            with st.spinner("Processing..."):
                 response = send_to_agent(user_message)
             st.markdown(response)
 

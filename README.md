@@ -1,18 +1,12 @@
-# ViCare - Multi-Agent Health & Calendar Assistant
+# ViCare - Multi-Agent Calendar Assistant
 
 <p align="center">
   <img src="change/qai_gen.png" alt="ViCare Logo" width="200" height="200"/>
 </p>
 
-A sophisticated multi-agent system that combines AI-powered health consultation with Google Calendar integration, featuring both web interface and command-line access.
+A sophisticated multi-agent system for Google Calendar integration, featuring both web interface and command-line access.
 
 ##  Features
-
-### Health Consultation
-- **Symptom Analysis**: AI-powered analysis of health symptoms
-- **Health Advice**: Personalized health recommendations
-- **Medical Guidance**: General medical information and guidance
-- **Wellness Tips**: Diet, exercise, and lifestyle recommendations
 
 ### Calendar Management
 - **Event Creation**: Schedule appointments and meetings
@@ -37,7 +31,6 @@ ViCare Application
 │   └── State Management
 ├── Multi-Agent System
 │   ├── Supervisor Agent (Routing)
-│   ├── Health Agent (Medical Consultation)
 │   └── Calendar Agent (Google Calendar Integration)
 └── Services
     ├── MCP Service (Model Context Protocol)

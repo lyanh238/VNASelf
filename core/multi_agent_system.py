@@ -9,7 +9,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-from agents import HealthAgent, CalendarAgent, SupervisorAgent
+from agents import CalendarAgent, SupervisorAgent
 from services import MCPService
 from services.chat_history_service import LogsService
 from .state_manager import StateManager
@@ -17,6 +17,7 @@ from .state_manager import StateManager
 
 class MultiAgentSystem:
     """Main orchestrator for the multi-agent system."""
+
     
     def __init__(self, model_name: str = "gpt-4o-mini"):
         self.model = ChatOpenAI(model=model_name)
@@ -25,9 +26,8 @@ class MultiAgentSystem:
         self.state_manager = StateManager()
         
         # Initialize agents
-        self.health_agent = HealthAgent(self.model)
         self.calendar_agent = CalendarAgent(self.model, self.mcp_service)
-        self.supervisor_agent = SupervisorAgent(self.model, self.health_agent, self.calendar_agent)
+        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent)
         
         self.graph = None
         self._initialized = False
@@ -125,9 +125,7 @@ class MultiAgentSystem:
             tool_calls = result["messages"][-1].additional_kwargs.get('tool_calls', [])
             if tool_calls:
                 tool_name = tool_calls[0].get('function', {}).get('name', '')
-                if 'health' in tool_name.lower():
-                    agent_name = "Health Agent"
-                elif 'calendar' in tool_name.lower():
+                if 'calendar' in tool_name.lower():
                     agent_name = "Calendar Agent"
                 else:
                     agent_name = "Supervisor Agent"
@@ -172,7 +170,7 @@ class MultiAgentSystem:
             await self.initialize()
         
         print("=" * 60)
-        print(" Multi-Agent System (Health + Calendar)")
+        print(" Multi-Agent System (Calendar)")
         print("=" * 60)
         print("Special commands:")
         print("  - 'exit' or 'quit': Exit")
@@ -242,10 +240,6 @@ class MultiAgentSystem:
         print("=" * 60 + "\n")
         
         examples = [
-            {
-                "name": "Health Consultation",
-                "query": "I have a headache and mild fever, what should I do?"
-            },
             {
                 "name": "View Upcoming Events",
                 "query": "Show me the next 5 events in my calendar"

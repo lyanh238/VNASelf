@@ -7,7 +7,7 @@ This guide provides comprehensive instructions on how to use the ViCare multi-ag
 1. [Getting Started](#getting-started)
 2. [Web Interface](#web-interface)
 3. [Command Line Interface](#command-line-interface)
-4. [Health Consultation](#health-consultation)
+4. [Calendar Management](#calendar-management)
 5. [Calendar Management](#calendar-management)
 6. [Advanced Features](#advanced-features)
 7. [Best Practices](#best-practices)
@@ -60,7 +60,7 @@ Click any suggestion button to quickly start with common tasks:
 - "Kiểm tra lịch trống" (Check available times)
 - "Hủy lịch hẹn" (Cancel appointment)
 - "Cập nhật lịch hẹn" (Update appointment)
-- "Tư vấn sức khỏe" (Health consultation)
+- "Quản lý lịch" (Calendar management)
 - "Theo dõi huyết áp" (Blood pressure tracking)
 
 ### Chat Features
@@ -89,7 +89,7 @@ Choose mode:
 
 #### Option 1: Examples
 Runs predefined examples to demonstrate functionality:
-- Health consultation example
+- Calendar management example
 - Calendar viewing example
 - Event creation example
 - Event search example
@@ -99,7 +99,7 @@ Starts a command-line chat session:
 
 ```
 ============================================================
-Multi-Agent System (Health + Calendar)
+Multi-Agent System (Calendar)
 ============================================================
 Special commands:
   - 'exit' or 'quit': Exit
@@ -300,7 +300,7 @@ Which option would you prefer?
 
 The system automatically routes your requests to the appropriate agent:
 
-- **Health-related queries** → Health Agent
+- **General queries** → General Agent
 - **Calendar-related queries** → Calendar Agent
 - **Mixed queries** → Supervisor Agent coordinates both
 
@@ -335,13 +335,6 @@ All times are handled in Asia/Ho_Chi_Minh timezone (GMT+7):
 
 ## Best Practices
 
-### For Health Queries
-
-1. **Be Specific**: Provide detailed symptom descriptions
-2. **Include Context**: Mention duration, severity, triggers
-3. **Ask Follow-ups**: Don't hesitate to ask clarifying questions
-4. **Seek Professional Help**: For serious symptoms, consult healthcare providers
-
 ### For Calendar Management
 
 1. **Use Clear Dates**: Specify exact dates when possible
@@ -365,81 +358,29 @@ User: I've been having headaches for the past week, usually in the afternoon. Th
 
 Assistant: I understand you've been experiencing persistent afternoon headaches for a week. Let me help you with this.
 
-**Questions to better understand your situation:**
-1. Do the headaches occur at the same time each day?
-2. Are they associated with any triggers (stress, screen time, hunger)?
-3. Have you noticed any changes in your sleep or stress levels recently?
-
-**General recommendations for persistent headaches:**
-- Maintain regular sleep schedule
-- Stay hydrated throughout the day
-- Take breaks from screens every hour
-- Consider stress management techniques
-
-**When to seek medical attention:**
-- If headaches worsen or change pattern
-- If you experience vision changes or nausea
-- If headaches interfere with daily activities
-
-Would you like me to help you schedule a doctor appointment to discuss these headaches?
-```
-
 ### Complete Calendar Management
 
-```
-User: I need to schedule a series of follow-up appointments for my treatment.
+**User**: "I need to schedule a meeting with my team for next week"
 
-Assistant: I'd be happy to help you schedule your follow-up appointments. Let me first check your current schedule to find available times.
+**Assistant**: "I'll help you schedule a meeting with your team for next week. Let me check your availability and find the best time slots.
 
-**Current upcoming appointments:**
-- October 22: 10:00 AM - Initial Consultation
-- October 25: 2:00 PM - Lab Work
+**Available Time Slots:**
+- Monday, October 28: 9:00 AM - 10:00 AM, 2:00 PM - 3:00 PM
+- Tuesday, October 29: 10:00 AM - 11:00 AM, 3:00 PM - 4:00 PM
+- Wednesday, October 30: 9:30 AM - 10:30 AM, 2:30 PM - 3:30 PM
 
-**Questions to help schedule your follow-ups:**
-1. How many follow-up appointments do you need?
-2. What's the recommended interval between appointments?
-3. Do you have any time preferences (morning, afternoon, specific days)?
-4. How long should each appointment be?
+**Meeting Details:**
+- **Title**: Team Meeting
+- **Duration**: 1 hour
+- **Participants**: Your team members
+- **Location**: Conference Room A (or virtual meeting)
 
-**Suggested scheduling approach:**
-- Week 1: First follow-up (1 week after initial)
-- Week 2: Second follow-up (2 weeks after initial)
-- Month 1: Monthly check-in
-- Month 3: 3-month review
+**Next Steps:**
+1. Choose your preferred time slot
+2. I'll create the meeting and send invitations
+3. You'll receive a confirmation with meeting details
 
-Would you like me to create these appointments based on your initial consultation date?
-```
-
-### Mixed Health and Calendar Query
-
-```
-User: I have a doctor appointment tomorrow, but I'm feeling worse today. Should I go or reschedule?
-
-Assistant: I understand you're feeling worse today and have a doctor appointment tomorrow. Let me help you decide.
-
-**Health Assessment:**
-Since you're feeling worse, it's important to consider:
-- Are your symptoms getting significantly worse?
-- Do you have any emergency symptoms (severe pain, difficulty breathing, high fever)?
-- Can you wait until tomorrow, or do you need immediate attention?
-
-**Appointment Options:**
-1. **Keep tomorrow's appointment** if symptoms are manageable
-2. **Reschedule to today** if you need earlier attention
-3. **Seek immediate care** if symptoms are severe
-
-**Current appointment details:**
-- Date: Tomorrow at 2:00 PM
-- Duration: 30 minutes
-- Doctor: Dr. Smith
-
-Would you like me to:
-1. Help you find an earlier appointment today?
-2. Keep your current appointment?
-3. Help you identify if you need immediate medical attention?
-
-What are your current symptoms, and how do they compare to when you scheduled the appointment?
-```
+Would you like me to create the meeting for any of these time slots?"
 
 ## Troubleshooting Usage Issues
 

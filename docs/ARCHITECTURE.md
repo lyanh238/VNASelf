@@ -1,6 +1,6 @@
 # ViCare Architecture Documentation
 
-This document provides a comprehensive overview of the ViCare multi-agent system architecture, design decisions, and technical implementation details.
+This document provides a comprehensive overview of the ViCare multi-agent calendar system architecture, design decisions, and technical implementation details.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This document provides a comprehensive overview of the ViCare multi-agent system
 
 ## System Overview
 
-ViCare is a multi-agent system that combines AI-powered health consultation with Google Calendar integration. The system uses a supervisor-agent pattern to route user requests to specialized agents based on the nature of the query.
+ViCare is a multi-agent system for Google Calendar integration. The system uses a supervisor-agent pattern to route user requests to specialized agents based on the nature of the query.
 
 ### High-Level Architecture
 
@@ -38,7 +38,7 @@ ViCare is a multi-agent system that combines AI-powered health consultation with
 ┌─────────────────────────────────────────────────────────────┐
 │                    Agent Layer                              │
 ├─────────────────────────────────────────────────────────────┤
-│  Supervisor Agent  │  Health Agent  │  Calendar Agent      │
+│  Supervisor Agent  │  Calendar Agent      │
 └─────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -104,26 +104,9 @@ async def close()                # Cleanup resources
   - Error handling
 
 **Available Tools**:
-- Health consultation tools
 - Calendar management tools
 - Event creation and management
 - Search and retrieval operations
-
-#### HealthAgent (`agents/health_agent.py`)
-- **Purpose**: Provides health consultation and medical advice
-- **Technology**: LangChain with custom tools
-- **Responsibilities**:
-  - Symptom analysis
-  - Health recommendations
-  - Medical guidance
-  - Wellness advice
-
-**Tools**:
-```python
-@tool
-def health_consultation_tool(symptoms: str, question: str) -> str:
-    """Provides health advice based on symptoms and questions."""
-```
 
 #### CalendarAgent (`agents/calendar_agent.py`)
 - **Purpose**: Manages Google Calendar integration
@@ -185,7 +168,7 @@ SupervisorAgent → Tool Selection → Specialized Agent → Tool Execution
 ```
 
 1. **Tool Selection**: SupervisorAgent selects appropriate tools
-2. **Agent Routing**: Message routed to HealthAgent or CalendarAgent
+2. **Agent Routing**: Message routed to CalendarAgent
 3. **Tool Execution**: Specialized agent executes relevant tools
 4. **Response Generation**: Agent generates response based on tool results
 
