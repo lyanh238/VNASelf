@@ -5,6 +5,7 @@ Backend API for React frontend integration with Multi-Agent System
 import asyncio
 import json
 import uuid
+import os
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -31,6 +32,9 @@ app.add_middleware(
 # Global multi-agent system instance
 multi_agent_system = None
 
+# Account file path
+ACCOUNT_FILE_PATH = "account.json"
+
 # Pydantic models
 class ChatMessage(BaseModel):
     content: str
@@ -52,7 +56,67 @@ class ThreadSummary(BaseModel):
     title: str
     last_message: str
     timestamp: int
-    message_count: int
+
+class AccountData(BaseModel):
+    name: str
+    email: str
+    password: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+def load_accounts() -> List[Dict[str, Any]]:
+    """Load accounts from account.json file"""
+    try:
+        if os.path.exists(ACCOUNT_FILE_PATH):
+            with open(ACCOUNT_FILE_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    except Exception as e:
+        print(f"Error loading accounts: {e}")
+        return []
+
+def save_accounts(accounts: List[Dict[str, Any]]) -> bool:
+    """Save accounts to account.json file"""
+    try:
+        with open(ACCOUNT_FILE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(accounts, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error saving accounts: {e}")
+        return False
+
+def add_or_update_account(account_data: AccountData) -> bool:
+    """Add or update account in account.json"""
+    try:
+        accounts = load_accounts()
+        
+        # Check if account exists
+        existing_index = None
+        for i, acc in enumerate(accounts):
+            if acc.get('email') == account_data.email:
+                existing_index = i
+                break
+        
+        # Prepare account data
+        account_dict = {
+            "name": account_data.name,
+            "email": account_data.email,
+            "password": account_data.password,
+            "created_at": account_data.created_at or datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        if existing_index is not None:
+            # Update existing account
+            accounts[existing_index] = account_dict
+        else:
+            # Add new account
+            accounts.append(account_dict)
+        
+        return save_accounts(accounts)
+    except Exception as e:
+        print(f"Error adding/updating account: {e}")
+        return False
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -195,6 +259,63 @@ async def delete_thread(thread_id: str):
             raise HTTPException(status_code=404, detail="Thread not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting thread: {str(e)}")
+
+# Account management endpoints
+@app.post("/api/accounts/save")
+async def save_account(account_data: AccountData):
+    """Save account data to account.json file"""
+    try:
+        success = add_or_update_account(account_data)
+        if success:
+            return {"success": True, "message": "Account saved successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to save account")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving account: {str(e)}")
+
+@app.get("/api/accounts")
+async def get_accounts():
+    """Get all accounts from account.json file"""
+    try:
+        accounts = load_accounts()
+        return {"success": True, "accounts": accounts}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading accounts: {str(e)}")
+
+@app.get("/api/accounts/{email}")
+async def get_account_by_email(email: str):
+    """Get specific account by email"""
+    try:
+        accounts = load_accounts()
+        account = next((acc for acc in accounts if acc.get('email') == email), None)
+        if account:
+            return {"success": True, "account": account}
+        else:
+            raise HTTPException(status_code=404, detail="Account not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading account: {str(e)}")
+
+@app.delete("/api/accounts/{email}")
+async def delete_account(email: str):
+    """Delete account by email"""
+    try:
+        accounts = load_accounts()
+        filtered_accounts = [acc for acc in accounts if acc.get('email') != email]
+        
+        if len(filtered_accounts) == len(accounts):
+            raise HTTPException(status_code=404, detail="Account not found")
+        
+        success = save_accounts(filtered_accounts)
+        if success:
+            return {"success": True, "message": "Account deleted successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete account")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting account: {str(e)}")
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):

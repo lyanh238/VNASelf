@@ -29,15 +29,21 @@ class MCPService:
             })
     
     async def get_calendar_tools(self) -> List[Any]:
-        """Get Google Calendar tools from MCP server."""
+        """Get Google Calendar tools from MCP server with lazy loading."""
         if self.client is None:
             await self.initialize()
         
         if self._calendar_tools is None:
-            self._calendar_tools = await self.client.get_tools(server_name="google_calendar")
-            print(f" Loaded {len(self._calendar_tools)} calendar tools from MCP server:")
-            for tool in self._calendar_tools:
-                print(f"  - {tool.name}: {tool.description}")
+            try:
+                self._calendar_tools = await self.client.get_tools(server_name="google_calendar")
+                print(f" Loaded {len(self._calendar_tools)} calendar tools from MCP server")
+                # Only print tool details in debug mode
+                if os.getenv("DEBUG_MCP", "false").lower() == "true":
+                    for tool in self._calendar_tools:
+                        print(f"  - {tool.name}: {tool.description}")
+            except Exception as e:
+                print(f"WARNING: Failed to load MCP calendar tools: {e}")
+                self._calendar_tools = []
         
         return self._calendar_tools
     

@@ -67,7 +67,6 @@ body {
   line-height: 1.6;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
-  cursor: url('/miku.gif'), auto;
 }
 
 .app {
@@ -221,15 +220,11 @@ body {
 .X2D35-logo {
   width: 24px;
   height: 24px;
-  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-weight: bold;
-  color: white;
-  font-size: 10px;
   overflow: hidden;
 }
 
@@ -477,6 +472,7 @@ body {
   width: 100%;
   max-width: 768px;
   margin-bottom: 16px;
+  gap : 20px;
 }
 
 .main-content .chat-messages::-webkit-scrollbar {
@@ -532,13 +528,6 @@ body {
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
-  overflow: hidden;
-}
-
-.main-content .message-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
 }
 
 .main-content .message.user .message-avatar {
@@ -565,7 +554,7 @@ body {
   margin-bottom: 4px;
   font-size: 12px;
   opacity: 0.8;
-  gap : 20px;
+  gap: 20px;
 }
 
 .main-content .message-role {
@@ -665,10 +654,44 @@ body {
   margin-bottom: 48px;
 }
 
-.QAI-icon-large {
+.X2D35-icon-large {
   margin-bottom: 24px;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+}
+
+/* Loading Spinner */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 .welcome-text {
@@ -929,54 +952,4 @@ body {
 .chat-input-container,
 .prompt-suggestions {
   animation: fadeIn 0.5s ease-out;
-}
-
-/* Custom Cursor Styles */
-* {
-  cursor: url('/miku.gif'), auto;
-}
-
-/* Interactive elements should show pointer cursor */
-button, 
-a, 
-[role="button"], 
-input[type="button"], 
-input[type="submit"], 
-input[type="reset"],
-.hamburger-menu,
-.new-chat-btn,
-.nav-link,
-.user-profile-btn,
-.prompt-btn,
-.send-btn,
-.input-btn,
-.action-btn,
-.back-btn,
-.recent-item {
-  cursor: url('/miku.gif'), pointer;
-}
-
-/* Text input elements should show text cursor */
-input[type="text"], 
-input[type="email"], 
-input[type="password"], 
-input[type="search"], 
-input[type="url"], 
-input[type="tel"], 
-textarea,
-.chat-input-field {
-  cursor: url('/miku.gif'), text;
-}
-
-/* Select elements */
-select,
-.model-select {
-  cursor: url('/miku.gif'), pointer;
-}
-
-/* Disabled elements */
-button:disabled,
-.send-btn:disabled,
-input:disabled {
-  cursor: url('/miku.gif'), not-allowed;
 }

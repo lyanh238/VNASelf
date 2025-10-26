@@ -84,3 +84,5 @@ Thumbs.db
 *.sqlite3
 *.db
 *.bak
+
+backend/account.json

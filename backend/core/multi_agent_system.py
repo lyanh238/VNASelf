@@ -36,20 +36,20 @@ class MultiAgentSystem:
         self._initialized = False
     
     async def initialize(self):
-        """Initialize the multi-agent system."""
+        """Initialize the multi-agent system with parallel initialization."""
         if self._initialized:
             return
         
         print(" Initializing Multi-Agent System...")
         
-        # Initialize logs service
-        await self.logs_service.initialize()
-        
-        # Initialize payment history service
-        await self.payment_service.initialize()
-        
-        # Initialize MCP service
-        await self.mcp_service.initialize()
+        # Initialize services in parallel for better performance
+        import asyncio
+        await asyncio.gather(
+            self.logs_service.initialize(),
+            self.payment_service.initialize(),
+            self.mcp_service.initialize(),
+            return_exceptions=True  # Don't fail if one service fails
+        )
         
         # Initialize supervisor agent (which initializes calendar and finance agents)
         await self.supervisor_agent.initialize()
