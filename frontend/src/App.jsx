@@ -303,7 +303,9 @@ function App() {
             >
               ☰
             </button>
-            <div className="X2D35-logo"></div>
+            <div className="X2D35-logo">
+              <img src="/src/assets/qai_gen.png" alt="QAI Logo" style={{ width: '150%', height: '150%', objectFit: 'contain' }} />
+            </div>
             <span className="X2D35-text">X2D35</span>
           </div>
 
@@ -445,7 +447,9 @@ function App() {
                 {messages.map((message) => (
                   <div key={message.id} className={`message ${message.type}`}>
                     <div className="message-avatar">
-                      {message.type === 'user' ? 'U' : 'V'}
+                      {message.type === 'user' ? 'U' : (
+                        <img src="/src/assets/qai_gen.png" alt="QAI" style={{ width: '150%', height: '150%', objectFit: 'contain', borderRadius: '50%' }} />
+                      )}
                     </div>
                     <div className="message-content">
                       <div className="message-header">
@@ -468,7 +472,9 @@ function App() {
                 
                 {isLoading && (
                   <div className="message assistant">
-                    <div className="message-avatar">V</div>
+                    <div className="message-avatar">
+                      <img src="/src/assets/qai_gen.png" alt="QAI" style={{ width: '150%', height: '150%', objectFit: 'contain', borderRadius: '50%' }} />
+                    </div>
                     <div className="message-content">
                       <div className="message-header">
                         <span className="message-role">VNASelf</span>

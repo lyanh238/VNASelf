@@ -134,6 +134,13 @@
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .message.user .message-avatar {
@@ -365,4 +372,37 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Custom Cursor Styles for Chat Interface */
+.chat-interface * {
+  cursor: url('/miku.gif'), auto;
+}
+
+.chat-interface button,
+.chat-interface a,
+.chat-interface [role="button"],
+.chat-interface .back-btn,
+.chat-interface .action-btn,
+.chat-interface .send-btn,
+.chat-interface .input-btn,
+.chat-interface .recent-item {
+  cursor: url('/miku.gif'), pointer;
+}
+
+.chat-interface input[type="text"],
+.chat-interface textarea,
+.chat-interface .chat-input-field {
+  cursor: url('/miku.gif'), text;
+}
+
+.chat-interface select,
+.chat-interface .model-select {
+  cursor: url('/miku.gif'), pointer;
+}
+
+.chat-interface button:disabled,
+.chat-interface .send-btn:disabled,
+.chat-interface input:disabled {
+  cursor: url('/miku.gif'), not-allowed;
 }

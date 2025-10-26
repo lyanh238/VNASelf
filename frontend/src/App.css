@@ -67,6 +67,7 @@ body {
   line-height: 1.6;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  cursor: url('/miku.gif'), auto;
 }
 
 .app {
@@ -229,6 +230,13 @@ body {
   font-weight: bold;
   color: white;
   font-size: 10px;
+  overflow: hidden;
+}
+
+.X2D35-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .X2D35-text {
@@ -524,6 +532,13 @@ body {
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.main-content .message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .main-content .message.user .message-avatar {
@@ -550,6 +565,7 @@ body {
   margin-bottom: 4px;
   font-size: 12px;
   opacity: 0.8;
+  gap : 20px;
 }
 
 .main-content .message-role {
@@ -649,7 +665,7 @@ body {
   margin-bottom: 48px;
 }
 
-.claude-icon-large {
+.QAI-icon-large {
   margin-bottom: 24px;
   display: flex;
   justify-content: center;
@@ -913,4 +929,54 @@ body {
 .chat-input-container,
 .prompt-suggestions {
   animation: fadeIn 0.5s ease-out;
+}
+
+/* Custom Cursor Styles */
+* {
+  cursor: url('/miku.gif'), auto;
+}
+
+/* Interactive elements should show pointer cursor */
+button, 
+a, 
+[role="button"], 
+input[type="button"], 
+input[type="submit"], 
+input[type="reset"],
+.hamburger-menu,
+.new-chat-btn,
+.nav-link,
+.user-profile-btn,
+.prompt-btn,
+.send-btn,
+.input-btn,
+.action-btn,
+.back-btn,
+.recent-item {
+  cursor: url('/miku.gif'), pointer;
+}
+
+/* Text input elements should show text cursor */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+input[type="search"], 
+input[type="url"], 
+input[type="tel"], 
+textarea,
+.chat-input-field {
+  cursor: url('/miku.gif'), text;
+}
+
+/* Select elements */
+select,
+.model-select {
+  cursor: url('/miku.gif'), pointer;
+}
+
+/* Disabled elements */
+button:disabled,
+.send-btn:disabled,
+input:disabled {
+  cursor: url('/miku.gif'), not-allowed;
 }

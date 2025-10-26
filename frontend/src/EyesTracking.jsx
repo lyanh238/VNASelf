@@ -77,8 +77,8 @@ const EyesTracking = ({ inputRef }) => {
       <svg width="64" height="64" viewBox="0 0 64 64" style={{ filter: 'drop-shadow(0 4px 12px rgba(217, 119, 6, 0.3))' }}>
         <defs>
           <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#D97706" />
-            <stop offset="100%" stopColor="#F59E0B" />
+            <stop offset="0%" stopColor="#56cee6ff" />
+            <stop offset="100%" stopColor="#55b4ebff" />
           </linearGradient>
           <radialGradient id="pupilGradient" cx="30%" cy="30%">
             <stop offset="0%" stopColor="#1a1a1a" />
