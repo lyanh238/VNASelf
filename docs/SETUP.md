@@ -1,6 +1,6 @@
 # VNASelf Setup Guide
 
-This guide provides detailed instructions for setting up the VNASelf multi-agent system on different platforms.
+This guide provides detailed instructions for setting up the VNASelf multi-agent system with React frontend on different platforms.
 
 ## Table of Contents
 
@@ -8,17 +8,21 @@ This guide provides detailed instructions for setting up the VNASelf multi-agent
 2. [Installation](#installation)
 3. [Configuration](#configuration)
 4. [Google Calendar Setup](#google-calendar-setup)
-5. [Verification](#verification)
-6. [Troubleshooting](#troubleshooting)
+5. [Frontend Setup](#frontend-setup)
+6. [Running the Application](#running-the-application)
+7. [Verification](#verification)
+8. [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
 ### System Requirements
 
 - **Python**: 3.11 or higher
+- **Node.js**: 18.0 or higher (for React frontend)
+- **npm**: 9.0 or higher
 - **Operating System**: Windows, macOS, or Linux
 - **Memory**: Minimum 4GB RAM (8GB recommended)
-- **Storage**: 1GB free space
+- **Storage**: 2GB free space
 - **Internet**: Required for API calls
 
 ### Required Accounts
@@ -30,6 +34,10 @@ This guide provides detailed instructions for setting up the VNASelf multi-agent
 2. **Google Cloud Account** (Optional): For calendar features
    - Sign up at [Google Cloud Console](https://console.cloud.google.com/)
    - Enable Google Calendar API
+
+3. **Neon Database Account** (Optional): For chat history storage
+   - Sign up at [Neon](https://neon.tech/)
+   - Create a new database project
 
 ## Installation
 
@@ -86,6 +94,7 @@ OPENAI_API_KEY=your-openai-api-key-here
 # Optional
 OPENAI_MODEL=gpt-4o-mini
 GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
+NEON_DATABASE_URL=postgresql://username:password@host/database
 ```
 
 ### Alternative: System Environment Variables
@@ -168,15 +177,88 @@ class Config:
    export GOOGLE_APPLICATION_CREDENTIALS="path/to/your-credentials.json"
    ```
 
+## Frontend Setup
+
+### Install Node.js Dependencies
+
+1. **Navigate to the deploy directory**
+   ```bash
+   cd deploy
+   ```
+
+2. **Install React dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Build the frontend** (for production)
+   ```bash
+   npm run build
+   ```
+
+## Running the Application
+
+### Method 1: Using the Startup Script (Recommended)
+
+```bash
+# From the project root directory
+python start_app.py
+```
+
+This will start both the backend API and React frontend automatically.
+
+### Method 2: Manual Setup
+
+1. **Start the Backend API**
+   ```bash
+   # Terminal 1
+   python backend_api.py
+   ```
+
+2. **Start the React Frontend**
+   ```bash
+   # Terminal 2
+   cd deploy
+   npm run dev
+   ```
+
+3. **Access the Application**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+
+### Method 3: Production Deployment
+
+1. **Build the React app**
+   ```bash
+   cd deploy
+   npm run build
+   ```
+
+2. **Start the backend with static file serving**
+   ```bash
+   python backend_api.py
+   ```
+
+3. **Access the application**
+   - Application: http://localhost:8000
+
 ## Verification
 
 ### Test 1: Basic Installation
 
 ```bash
-python -c "import streamlit, langgraph, langchain_openai; print('All packages installed successfully')"
+python -c "import fastapi, uvicorn, langgraph, langchain_openai; print('All packages installed successfully')"
 ```
 
-### Test 2: OpenAI Connection
+### Test 2: Frontend Dependencies
+
+```bash
+cd deploy
+npm list --depth=0
+```
+
+### Test 3: OpenAI Connection
 
 ```bash
 python -c "
@@ -187,7 +269,7 @@ print('OpenAI connection successful')
 "
 ```
 
-### Test 3: Google Calendar (if configured)
+### Test 4: Google Calendar (if configured)
 
 ```bash
 python -c "
@@ -202,11 +284,18 @@ asyncio.run(test())
 "
 ```
 
-### Test 4: Full System
+### Test 5: Backend API
 
 ```bash
-python main.py
-# Choose option 1 to run examples
+python backend_api.py
+# Check http://localhost:8000/docs for API documentation
+```
+
+### Test 6: Full System
+
+```bash
+python start_app.py
+# Access http://localhost:8000 for the full application
 ```
 
 ## Troubleshooting

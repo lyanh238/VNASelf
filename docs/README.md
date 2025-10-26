@@ -1,6 +1,6 @@
 # VNASelf Documentation
 
-Welcome to the VNASelf documentation! This directory contains comprehensive guides and references for the VNASelf multi-agent system.
+Welcome to the VNASelf documentation! This directory contains comprehensive guides and references for the VNASelf multi-agent system with modern React frontend.
 
 ## Documentation Index
 
@@ -26,13 +26,23 @@ Welcome to the VNASelf documentation! This directory contains comprehensive guid
 
 ## System Overview
 
-VNASelf is a multi-agent personal assistant that helps you manage:
+VNASelf is a multi-agent personal assistant with a modern React frontend that helps you manage:
 
 - **Personal Finance**: Track expenses, view spending history, and analyze your financial habits
 - **Calendar Management**: Schedule events, check availability, and manage your time
 - **Intelligent Routing**: Automatically routes your requests to the appropriate specialized agent
+- **Chat History**: Persistent conversation history stored in NeonDB
+- **Modern UI**: Beautiful React interface with dark/light theme support
 
 ## Key Features
+
+### Modern React Frontend
+- Beautiful, responsive user interface
+- Dark and light theme support
+- Real-time chat interface
+- Conversation history sidebar
+- Mobile-friendly design
+- Smooth animations and transitions
 
 ### Finance Management
 - Add and track expenses with categories (Food, Transportation, Miscellaneous)
@@ -51,6 +61,13 @@ VNASelf is a multi-agent personal assistant that helps you manage:
 - Finance Agent for expense management
 - Calendar Agent for Google Calendar integration
 - Clear agent identification in responses
+- Persistent conversation logs in NeonDB
+
+### Backend API
+- FastAPI-based REST API
+- WebSocket support for real-time communication
+- Chat history management
+- Thread-based conversation organization
 
 ## Getting Help
 

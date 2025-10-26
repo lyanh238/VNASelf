@@ -24,7 +24,7 @@ VNASelf is a multi-agent system for Google Calendar integration. The system uses
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Interface Layer                     │
 ├─────────────────────────────────────────────────────────────┤
-│  Streamlit Web App  │  Command Line Interface  │  API      │
+│  Streamlit Web App  │  Command Line Interface  │  API       │
 └─────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -36,16 +36,16 @@ VNASelf is a multi-agent system for Google Calendar integration. The system uses
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Agent Layer                              │
+│                         Agent Layer                         │
 ├─────────────────────────────────────────────────────────────┤
-│  Supervisor Agent  │  Calendar Agent      │
+│          Supervisor Agent     │  Calendar Agent             │
 └─────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   Service Layer                             │
 ├─────────────────────────────────────────────────────────────┤
-│  MCP Service  │  State Manager  │  External APIs           │
+│  MCP Service  │  State Manager  │  External APIs            │
 └─────────────────────────────────────────────────────────────┘
 ```
 

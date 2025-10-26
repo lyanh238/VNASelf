@@ -21,7 +21,7 @@ class LogsService:
         self.engine = None
         self.session = None
         self._initialized = False
-    
+
     async def initialize(self):
         """Initialize database connection."""
         if self._initialized:
@@ -33,13 +33,13 @@ class LogsService:
                 # Check if logs table exists, if not create it
                 try:
                     Base.metadata.create_all(self.engine)
-                    print("✓ Logs Service connected to Neon Database")
+                    print("[OK] Logs Service connected to Neon Database")
                 except Exception as e:
                     print(f"WARNING: Table creation warning: {str(e)}")
                     # Try to use existing table
                     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
                     self.session = SessionLocal()
-                    print("✓ Logs Service connected to existing logs table")
+                    print("[OK] Logs Service connected to existing logs table")
             else:
                 print("WARNING: NEON_DATABASE_URL not set - logs will not be saved")
             
@@ -50,7 +50,7 @@ class LogsService:
             self._initialized = True
             
         except Exception as e:
-            print(f"✗ Error initializing logs service: {str(e)}")
+            print(f"[ERROR] Error initializing logs service: {str(e)}")
             # Don't raise error, just disable logs
             self._initialized = True
     
@@ -207,6 +207,6 @@ class LogsService:
                 self.session.close()
             if self.engine:
                 self.engine.dispose()
-            print("✓ Logs Service closed")
+            print("[OK] Logs Service closed")
         except Exception as e:
             print(f"Error closing logs service: {str(e)}")

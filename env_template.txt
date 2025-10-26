@@ -1,0 +1,14 @@
+# VNASelf Environment Variables
+# Copy this file to .env and fill in your values
+
+# Required: OpenAI API Key
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Optional: OpenAI Model (default: gpt-4o-mini)
+OPENAI_MODEL=gpt-4o-mini
+
+# Optional: Neon Database URL for chat history
+NEON_DATABASE_URL=postgresql://username:password@host/database
+
+# Optional: Google Calendar API credentials
+GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
