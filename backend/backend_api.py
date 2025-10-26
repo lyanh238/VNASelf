@@ -94,7 +94,7 @@ async def shutdown_event():
 @app.get("/")
 async def root():
     """Serve the React app."""
-    return FileResponse("deploy/dist/index.html")
+    return FileResponse("../frontend/dist/index.html")
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(message: ChatMessage):
@@ -241,7 +241,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         manager.disconnect(websocket)
 
 # Mount static files for React app
-app.mount("/", StaticFiles(directory="deploy/dist", html=True), name="static")
+app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(
