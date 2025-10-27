@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import LampToggle from '../LampToggle'
 import EyesTracking from '../EyesTracking'
 import { useAuth } from '../contexts/AuthContext'
+import AgentList from './AgentList'
+import AgentChat from './AgentChat'
 
 const ChatApp = () => {
   const [inputValue, setInputValue] = useState('')
@@ -14,6 +16,10 @@ const ChatApp = () => {
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [showWelcome, setShowWelcome] = useState(true)
+  const [currentLanguage, setCurrentLanguage] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [currentView, setCurrentView] = useState('main') // 'main', 'agents', 'agent-chat'
+  const [selectedAgent, setSelectedAgent] = useState(null)
   const inputRef = useRef(null)
   const messagesEndRef = useRef(null)
   const { user, logout } = useAuth()
@@ -31,6 +37,34 @@ const ChatApp = () => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light')
   }, [isDarkMode])
+
+  // AI Warning text in multiple languages
+  const aiWarningTexts = [
+    "AI-generated content may not always be accurate. Please verify important information independently.", // English
+    "AIが生成したコンテンツは常に正確とは限りません。重要な情報は独立して確認してください。", // Japanese
+    "Nội dung do AI tạo ra có thể không phải lúc nào cũng chính xác. Vui lòng xác minh thông tin quan trọng một cách độc lập.", // Vietnamese
+    "AI生成的内容可能并不总是准确的。请独立验证重要信息。" // Chinese
+  ]
+
+  // Language rotation effect with smooth transition
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Phase 1: Fade out slowly
+      setIsTransitioning(true)
+      
+      // Phase 2: Change language after fade out completes
+      setTimeout(() => {
+        setCurrentLanguage((prev) => (prev + 1) % aiWarningTexts.length)
+      }, 800) // Wait for fade out to complete
+      
+      // Phase 3: Fade in slowly
+      setTimeout(() => {
+        setIsTransitioning(false)
+      }, 1000) // Start fade in after language change
+    }, 20000) // Change every 6 seconds
+    
+    return () => clearInterval(interval)
+  }, [])
 
   // Generate greeting based on current time
   useEffect(() => {
@@ -261,6 +295,28 @@ const ChatApp = () => {
     setMessages([])
     setShowWelcome(true)
     setInputValue('')
+    setCurrentView('main')
+    setSelectedAgent(null)
+  }
+
+  // Agent routing functions
+  const handleAgentClick = () => {
+    setCurrentView('agents')
+  }
+
+  const handleAgentSelect = (agent) => {
+    setSelectedAgent(agent)
+    setCurrentView('agent-chat')
+  }
+
+  const handleBackToAgents = () => {
+    setCurrentView('agents')
+    setSelectedAgent(null)
+  }
+
+  const handleBackToMain = () => {
+    setCurrentView('main')
+    setSelectedAgent(null)
   }
 
   // Ensure input stays at bottom when typing
@@ -285,7 +341,7 @@ const ChatApp = () => {
       {/* Top Bar */}
       <div className="top-bar">
         <div className="top-bar-center">
-          <span>X2D35 — Control+Alt+Space</span>
+          <span>X2D35 — V.0.0.1</span>
         </div>
         <div className="top-bar-right">
           <LampToggle 
@@ -316,14 +372,20 @@ const ChatApp = () => {
           </button>
 
           <nav className="navigation">
-            <a href="#" className="nav-link">
+            <button 
+              className={`nav-link ${currentView === 'main' ? 'active' : ''}`}
+              onClick={handleBackToMain}
+            >
               <span className="nav-icon">💬</span>
               Chats
-            </a>
-            <a href="#" className="nav-link">
+            </button>
+            <button 
+              className={`nav-link ${currentView === 'agents' || currentView === 'agent-chat' ? 'active' : ''}`}
+              onClick={handleAgentClick}
+            >
               <span className="nav-icon">📁</span>
               Agent
-            </a>
+            </button>
           </nav>
 
           <div className="recents-section">
@@ -364,9 +426,11 @@ const ChatApp = () => {
 
         {/* Main Content */}
         <div className="main-content">
-          {showWelcome && messages.length === 0 ? (
+          {currentView === 'main' && (
             <>
-              <div className="welcome-section">
+              {showWelcome && messages.length === 0 ? (
+                <>
+                  <div className="welcome-section">
                 <div className="X2D35-icon-large">
                   <EyesTracking inputRef={inputRef} />
                 </div>
@@ -415,30 +479,30 @@ const ChatApp = () => {
                   className="prompt-btn"
                   onClick={() => handlePromptClick('Schedule a medical appointment')}
                 >
-                  <span>📅</span>
+                  <span></span>
                   <span>Schedule Appointment</span>
                 </button>
                 <button 
                   className="prompt-btn"
                   onClick={() => handlePromptClick('Check available time slots')}
                 >
-                  <span>📋</span>
+                  <span></span>
                   <span>Check Schedule</span>
                 </button>
                 <button 
                   className="prompt-btn"
-                  onClick={() => handlePromptClick('Get health advice')}
+                  onClick={() => handlePromptClick('How to save money?')}
                 >
-                  <span>🏥</span>
-                  <span>Health Advice</span>
+                  <span></span>
+                  <span>Finance Advice</span>
                 </button>
                 <button 
                   className="prompt-btn"
-                  onClick={() => handlePromptClick('Monitor blood pressure')}
+                  onClick={() => handlePromptClick('What is my payment status?')}
                 >
-                  <span>💊</span>
-                  <span>Blood Pressure</span>
-                </button>
+                  <span></span>
+                  <span>My payments</span>
+                </button> 
               </div>
             </>
           ) : (
@@ -461,12 +525,12 @@ const ChatApp = () => {
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
-                      <div 
-                        className="message-text"
-                        dangerouslySetInnerHTML={{ 
-                          __html: formatMessage(message.content) 
-                        }}
-                      />
+                       <div 
+                         className="message-text"
+                         dangerouslySetInnerHTML={{ 
+                           __html: formatMessage(message.content) 
+                         }}
+                       />
                     </div>
                   </div>
                 ))}
@@ -510,18 +574,59 @@ const ChatApp = () => {
                     className="chat-input-field"
                     disabled={isLoading}
                   />
-                  <div className="input-controls-right">
-                    <button 
-                      className="send-btn" 
-                      onClick={handleSendMessage}
-                      disabled={!inputValue.trim() || isLoading}
-                    >
-                      →
-                    </button>
-                  </div>
-                </div>
-              </div>
+                   <div className="input-controls-right">
+                     <button 
+                       className="send-btn" 
+                       onClick={handleSendMessage}
+                       disabled={!inputValue.trim() || isLoading}
+                     >
+                       →
+                     </button>
+                   </div>
+                 </div>
+                 
+                 {/* AI Warning */}
+                 <div style={{
+                   fontSize: '12px',
+                   color: 'var(--text-muted)',
+                   marginTop: '8px',
+                   padding: '8px 12px',
+                   background: 'var(--bg-tertiary)',
+                   borderRadius: '6px',
+                   border: '1px solid var(--border-color)',
+                   fontStyle: 'italic',
+                   textAlign: 'center',
+                   transition: 'all 1.2s ease-in-out',
+                   opacity: isTransitioning ? 0 : 1,
+                   transform: isTransitioning ? 'translateY(-15px) scale(0.9)' : 'translateY(0) scale(1)',
+                   filter: isTransitioning ? 'blur(3px)' : 'blur(0)',
+                   position: 'relative',
+                   overflow: 'hidden'
+                 }}>
+                   <span style={{ 
+                     position: 'relative', 
+                     zIndex: 1,
+                     display: 'block',
+                     transition: 'opacity 1.2s ease-in-out'
+                   }}>
+                     {aiWarningTexts[currentLanguage]}
+                   </span>
+                 </div>
+               </div>
+              </>
+            )}
             </>
+          )}
+
+          {currentView === 'agents' && (
+            <AgentList onAgentSelect={handleAgentSelect} />
+          )}
+
+          {currentView === 'agent-chat' && selectedAgent && (
+            <AgentChat 
+              agent={selectedAgent} 
+              onBack={handleBackToAgents}
+            />
           )}
         </div>
       </div>

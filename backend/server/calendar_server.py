@@ -1,18 +1,21 @@
 from typing import Any
 from datetime import datetime, timedelta
 import os
+import sys
+import pickle
+import pytz
 from mcp.server.fastmcp import FastMCP
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-import pickle
-import pytz
-mcp = FastMCP("google_calendar")
-import os,sys
+
 # If modifying these scopes, delete the token.pickle file
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Initialize FastMCP server
+mcp = FastMCP("google_calendar")
 
 # Timezone setting for Vietnam
 TIMEZONE = 'Asia/Ho_Chi_Minh'
@@ -27,25 +30,46 @@ def get_calendar_service():
     
     # Token file stores user's access and refresh tokens
     if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+        try:
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+        except Exception as e:
+            print(f"Warning: Could not load token.pickle: {e}")
+            creds = None
     
     # If no valid credentials, let user log in
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                print(f"Warning: Could not refresh token: {e}")
+                creds = None
+        
+        if not creds or not creds.valid:
             if not os.path.exists('credentials.json'):
                 raise FileNotFoundError(
-                    "credentials.json not found. Please download it from Google Cloud Console."
+                    "credentials.json not found. Please download it from Google Cloud Console.\n"
+                    "Steps to fix:\n"
+                    "1. Go to Google Cloud Console (https://console.cloud.google.com/)\n"
+                    "2. Create a new project or select existing one\n"
+                    "3. Enable Google Calendar API\n"
+                    "4. Create credentials (OAuth 2.0 Client ID)\n"
+                    "5. Download credentials.json and place it in the backend folder"
                 )
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            except Exception as e:
+                raise Exception(f"Failed to authenticate with Google Calendar API: {e}")
         
         # Save credentials for next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+        try:
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+        except Exception as e:
+            print(f"Warning: Could not save token: {e}")
     
     return build('calendar', 'v3', credentials=creds)
 
@@ -285,6 +309,12 @@ async def check_conflicts(
     try:
         service = get_calendar_service()
         
+        # Ensure datetime strings have timezone information
+        if not start_datetime.endswith('+07:00') and not start_datetime.endswith('Z'):
+            start_datetime = start_datetime + '+07:00'
+        if not end_datetime.endswith('+07:00') and not end_datetime.endswith('Z'):
+            end_datetime = end_datetime + '+07:00'
+        
         # Get events in the time range
         events_result = service.events().list(
             calendarId='primary',
@@ -318,7 +348,16 @@ async def check_conflicts(
         return conflict_info
         
     except Exception as e:
-        return f"Error checking conflicts: {str(e)}"
+        error_msg = str(e)
+        if "HttpError 400" in error_msg:
+            return f"Authentication Error: Please check your Google Calendar credentials.\n" \
+                   f"Error details: {error_msg}\n\n" \
+                   f"To fix this:\n" \
+                   f"1. Make sure credentials.json exists in the backend folder\n" \
+                   f"2. Delete token.pickle and re-authenticate\n" \
+                   f"3. Check if Google Calendar API is enabled in your project"
+        else:
+            return f"Error checking conflicts: {error_msg}"
 
 
 @mcp.tool()
@@ -625,6 +664,235 @@ async def suggest_alternative_times(
         
     except Exception as e:
         return f"Error finding alternative times: {str(e)}"
+
+
+@mcp.tool()
+async def suggest_optimal_time(
+    activity_type: str,
+    duration_minutes: int = 60,
+    preferred_date: str = None,
+    days_ahead: int = 7
+) -> str:
+    """Suggest optimal time slots for activities based on productivity research.
+    
+    Args:
+        activity_type: Type of activity (meeting, focus work, creative work, etc.)
+        duration_minutes: Duration of the activity in minutes (default: 60)
+        preferred_date: Preferred date in YYYY-MM-DD format (optional)
+        days_ahead: Number of days to look ahead for suggestions (default: 7)
+    
+    Returns:
+        List of optimal time suggestions with productivity reasoning
+    """
+    try:
+        service = get_calendar_service()
+        
+        # Get current time
+        now = get_now_vietnam()
+        
+        # Determine optimal time ranges based on activity type and productivity research
+        optimal_ranges = []
+        
+        if activity_type.lower() in ['meeting', 'họp', 'cuộc họp', 'team meeting', 'client meeting']:
+            # Optimal meeting times: 10:00-11:30 AM or 1:30-3:00 PM
+            optimal_ranges = [
+                (10, 0, 11, 30),   # 10:00-11:30 AM
+                (13, 30, 15, 0),   # 1:30-3:00 PM
+            ]
+        elif activity_type.lower() in ['focus work', 'deep work', 'coding', 'writing', 'analysis']:
+            # Optimal focus work times: 9:00-11:00 AM (peak cognitive performance)
+            optimal_ranges = [
+                (9, 0, 11, 0),     # 9:00-11:00 AM
+                (14, 0, 16, 0),    # 2:00-4:00 PM (secondary peak)
+            ]
+        elif activity_type.lower() in ['creative work', 'brainstorming', 'planning', 'design']:
+            # Creative work: 10:00-12:00 PM (when creativity peaks)
+            optimal_ranges = [
+                (10, 0, 12, 0),    # 10:00-12:00 PM
+                (15, 0, 17, 0),    # 3:00-5:00 PM (afternoon creativity)
+            ]
+        elif activity_type.lower() in ['admin', 'email', 'routine', 'administrative']:
+            # Administrative tasks: 9:00-10:00 AM or 4:00-5:00 PM
+            optimal_ranges = [
+                (9, 0, 10, 0),     # 9:00-10:00 AM
+                (16, 0, 17, 0),    # 4:00-5:00 PM
+            ]
+        else:
+            # Default: general productivity times
+            optimal_ranges = [
+                (10, 0, 11, 30),   # 10:00-11:30 AM
+                (13, 30, 15, 0),   # 1:30-3:00 PM
+            ]
+        
+        # Determine start date
+        if preferred_date:
+            try:
+                start_date = datetime.strptime(preferred_date, '%Y-%m-%d').date()
+            except ValueError:
+                return f"Invalid date format. Please use YYYY-MM-DD format."
+        else:
+            start_date = now.date()
+        
+        suggestions = []
+        duration = timedelta(minutes=duration_minutes)
+        
+        # Look for optimal time slots
+        for day_offset in range(days_ahead + 1):
+            check_date = start_date + timedelta(days=day_offset)
+            
+            # Skip weekends for work activities unless specifically requested
+            if check_date.weekday() >= 5 and activity_type.lower() in ['meeting', 'focus work', 'admin']:
+                continue
+            
+            for start_hour, start_min, end_hour, end_min in optimal_ranges:
+                # Calculate potential start times within the optimal range
+                range_start = VN_TZ.localize(datetime.combine(check_date, datetime.min.time().replace(hour=start_hour, minute=start_min)))
+                range_end = VN_TZ.localize(datetime.combine(check_date, datetime.min.time().replace(hour=end_hour, minute=end_min)))
+                
+                # Generate time slots within the range
+                current_time = range_start
+                while current_time + duration <= range_end:
+                    slot_start = current_time
+                    slot_end = slot_start + duration
+                    
+                    # Check if this slot is available
+                    events_result = service.events().list(
+                        calendarId='primary',
+                        timeMin=slot_start.isoformat(),
+                        timeMax=slot_end.isoformat(),
+                        singleEvents=True,
+                        orderBy='startTime'
+                    ).execute()
+                    
+                    events = events_result.get('items', [])
+                    
+                    if not events:
+                        # Calculate productivity score based on time and activity type
+                        productivity_score = calculate_productivity_score(
+                            slot_start, activity_type, check_date.weekday()
+                        )
+                        
+                        suggestions.append({
+                            'date': check_date.isoformat(),
+                            'start': slot_start.isoformat(),
+                            'end': slot_end.isoformat(),
+                            'day_name': check_date.strftime('%A'),
+                            'time_str': slot_start.strftime('%H:%M'),
+                            'productivity_score': productivity_score,
+                            'reasoning': get_productivity_reasoning(slot_start, activity_type)
+                        })
+                    
+                    # Move to next 30-minute slot
+                    current_time += timedelta(minutes=30)
+                    
+                    if len(suggestions) >= 5:  # Limit to 5 suggestions
+                        break
+                
+                if len(suggestions) >= 5:
+                    break
+            
+            if len(suggestions) >= 5:
+                break
+        
+        if not suggestions:
+            return f"No optimal time slots found for '{activity_type}' in the next {days_ahead} days. Please try a different activity type or extend the search period."
+        
+        # Sort by productivity score (highest first)
+        suggestions.sort(key=lambda x: x['productivity_score'], reverse=True)
+        
+        # Format suggestions
+        result = f"🎯 Optimal time suggestions for '{activity_type}' ({duration_minutes} minutes):\n\n"
+        result += f"Based on productivity research, here are the best time slots:\n\n"
+        
+        for i, suggestion in enumerate(suggestions, 1):
+            result += f"**{i}. {suggestion['day_name']}, {suggestion['date']} at {suggestion['time_str']}**\n"
+            result += f"   📅 Start: {suggestion['start']}\n"
+            result += f"   📅 End: {suggestion['end']}\n"
+            result += f"   ⭐ Productivity Score: {suggestion['productivity_score']}/10\n"
+            result += f"   💡 Why this time: {suggestion['reasoning']}\n\n"
+        
+        result += "💡 **Productivity Tips:**\n"
+        result += "• Meetings work best between 10:00-11:30 AM or 1:30-3:00 PM\n"
+        result += "• Focus work is most effective 9:00-11:00 AM\n"
+        result += "• Avoid scheduling right before lunch or late afternoon\n"
+        result += "• Creative work peaks around 10:00 AM-12:00 PM\n\n"
+        result += "Would you like me to create an event for any of these times?"
+        
+        return result
+        
+    except Exception as e:
+        return f"Error finding optimal times: {str(e)}"
+
+
+def calculate_productivity_score(datetime_obj, activity_type, weekday):
+    """Calculate productivity score based on time and activity type."""
+    hour = datetime_obj.hour
+    score = 5  # Base score
+    
+    # Time-based scoring
+    if 9 <= hour <= 11:
+        score += 3  # Peak morning hours
+    elif 14 <= hour <= 16:
+        score += 2  # Good afternoon hours
+    elif 10 <= hour <= 11:
+        score += 1  # Excellent meeting time
+    elif hour < 9 or hour > 17:
+        score -= 2  # Outside work hours
+    
+    # Activity-specific scoring
+    if activity_type.lower() in ['meeting', 'họp']:
+        if 10 <= hour <= 11 or 13 <= hour <= 15:
+            score += 2  # Optimal meeting times
+    elif activity_type.lower() in ['focus work', 'coding']:
+        if 9 <= hour <= 11:
+            score += 3  # Peak focus time
+    elif activity_type.lower() in ['creative work']:
+        if 10 <= hour <= 12:
+            score += 2  # Creative peak time
+    
+    # Weekday bonus
+    if 0 <= weekday <= 4:  # Monday to Friday
+        score += 1
+    
+    return min(10, max(1, score))  # Clamp between 1-10
+
+
+def get_productivity_reasoning(datetime_obj, activity_type):
+    """Get human-readable reasoning for why a time is optimal."""
+    hour = datetime_obj.hour
+    day_name = datetime_obj.strftime('%A')
+    
+    if activity_type.lower() in ['meeting', 'họp']:
+        if 10 <= hour <= 11:
+            return "Peak meeting time - everyone is alert and focused"
+        elif 13 <= hour <= 15:
+            return "Good afternoon meeting time - after lunch energy boost"
+        else:
+            return "Decent time for meetings, though not optimal"
+    
+    elif activity_type.lower() in ['focus work', 'coding']:
+        if 9 <= hour <= 11:
+            return "Peak cognitive performance - ideal for deep work"
+        elif 14 <= hour <= 16:
+            return "Good focus time - afternoon productivity peak"
+        else:
+            return "Decent time for focused work"
+    
+    elif activity_type.lower() in ['creative work']:
+        if 10 <= hour <= 12:
+            return "Creative peak time - when imagination is most active"
+        elif 15 <= hour <= 17:
+            return "Good creative time - afternoon inspiration"
+        else:
+            return "Decent time for creative work"
+    
+    else:
+        if 9 <= hour <= 11:
+            return "Peak productivity hours - optimal for most tasks"
+        elif 14 <= hour <= 16:
+            return "Good productivity time - afternoon energy"
+        else:
+            return "Decent time for work tasks"
 
 
 @mcp.tool()

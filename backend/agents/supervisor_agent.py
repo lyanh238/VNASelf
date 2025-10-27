@@ -48,6 +48,7 @@ class SupervisorAgent(BaseAgent):
    - create_event_with_conflict_check: Tạo sự kiện với kiểm tra xung đột
    - check_conflicts: Kiểm tra xung đột trong khoảng thời gian
    - suggest_alternative_times: Đề xuất thời gian thay thế khi có xung đột
+   - suggest_optimal_time: Đề xuất thời gian tối ưu dựa trên nghiên cứu năng suất (activity_type, duration_minutes, preferred_date, days_ahead)
    - resolve_conflict_by_moving_existing: Dời sự kiện cũ để giải quyết xung đột
    - resolve_conflict_by_deleting_existing: Xóa sự kiện cũ để giải quyết xung đột
    - update_event: Cập nhật sự kiện (cần: event_id)
@@ -78,6 +79,16 @@ QUY TRÌNH XỬ LÝ XUNG ĐỘT LỊCH:
   2) Dời sự kiện cũ sang thời gian khác (dùng resolve_conflict_by_moving_existing)
   3) Xóa sự kiện cũ (dùng resolve_conflict_by_deleting_existing)
 - Hỏi người dùng muốn chọn giải pháp nào trước khi thực hiện
+
+QUY TRÌNH ĐỀ XUẤT THỜI GIAN TỐI ƯU:
+- Khi người dùng yêu cầu đề xuất thời gian phù hợp cho hoạt động, sử dụng suggest_optimal_time
+- Các loại hoạt động được hỗ trợ:
+  * meeting/họp: 10:00-11:30 AM hoặc 1:30-3:00 PM (thời gian họp tối ưu)
+  * focus work/coding: 9:00-11:00 AM (thời gian tập trung cao)
+  * creative work: 10:00-12:00 PM (thời gian sáng tạo)
+  * admin/routine: 9:00-10:00 AM hoặc 4:00-5:00 PM (công việc hành chính)
+- Sau khi đề xuất thời gian, hỏi người dùng có muốn tạo sự kiện không
+- Nếu đồng ý, sử dụng create_event_with_conflict_check để tạo sự kiện
 
 - Chỉ chọn một tool phù hợp nhất cho từng yêu cầu"""
     
