@@ -1,21 +1,19 @@
-# NekHealth Usage Guide
+# VNASelf Usage Guide
 
-This guide provides comprehensive instructions on how to use the NekHealth multi-agent system effectively.
+This guide provides comprehensive instructions on how to use the VNASelf multi-agent system effectively.
 
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
 2. [Web Interface](#web-interface)
-3. [Command Line Interface](#command-line-interface)
-4. [Health Consultation](#health-consultation)
-5. [Calendar Management](#calendar-management)
-6. [Advanced Features](#advanced-features)
-7. [Best Practices](#best-practices)
-8. [Examples](#examples)
+3. [Finance Management](#finance-management)
+4. [Calendar Management](#calendar-management)
+5. [Advanced Features](#advanced-features)
+6. [Tips and Best Practices](#tips-and-best-practices)
 
 ## Getting Started
 
-### Launching the Application
+### Starting the Application
 
 #### Web Interface (Recommended)
 ```bash
@@ -30,11 +28,7 @@ python main.py
 
 ### First Interaction
 
-When you first open the application, you'll see:
-
-1. **Welcome Screen**: With example suggestions
-2. **Chat Input**: Where you can type your questions
-3. **Suggestion Buttons**: Quick access to common tasks
+When you first start VNASelf, you'll see a clean chat interface. The system will automatically detect which agent should handle your request based on the content of your message.
 
 ## Web Interface
 
@@ -42,427 +36,249 @@ When you first open the application, you'll see:
 
 The web interface provides a clean, chat-based experience:
 
-- **Header**: NekHealth logo and restart button
-- **Chat Area**: Conversation history
+- **Header**: VNASelf logo and restart button
+- **Chat Area**: Conversation history with agent identification
 - **Input Field**: Type your questions here
-- **Suggestions**: Quick action buttons
+- **Suggestions**: Quick action buttons for common tasks
 
 ### Navigation
 
-#### Starting a New Conversation
-1. Click the "Restart" button (🔄) in the top right
-2. Or refresh the page
-3. This clears conversation history and starts fresh
+- **Restart Button**: Clears conversation history and starts fresh
+- **Chat History**: Scroll to see previous conversations
+- **Agent Indicators**: Each response shows which agent processed your request
 
-#### Using Suggestions
-Click any suggestion button to quickly start with common tasks:
-- "Đặt lịch khám bệnh" (Schedule medical appointment)
-- "Kiểm tra lịch trống" (Check available times)
-- "Hủy lịch hẹn" (Cancel appointment)
-- "Cập nhật lịch hẹn" (Update appointment)
-- "Tư vấn sức khỏe" (Health consultation)
-- "Theo dõi huyết áp" (Blood pressure tracking)
+## Finance Management
 
-### Chat Features
+### Adding Expenses
 
-#### Real-time Processing
-- Messages are processed in real-time
-- "Meowing..." spinner shows when AI is thinking
-- Responses appear immediately when ready
+VNASelf can help you track your spending in Vietnamese or English:
 
-#### Conversation Memory
-- The system remembers your conversation history
-- Context is maintained across multiple exchanges
-- Previous questions and answers influence future responses
-
-## Command Line Interface
-
-### Interactive Mode
-
-When you run `python main.py`, you'll see:
-
+#### Basic Format
 ```
-Choose mode:
-1. Run example demonstrations
-2. Interactive chat
+"Thêm chi tiêu: [description], [amount] VND, [category], [date]"
 ```
 
-#### Option 1: Examples
-Runs predefined examples to demonstrate functionality:
-- Health consultation example
-- Calendar viewing example
-- Event creation example
-- Event search example
-
-#### Option 2: Interactive Chat
-Starts a command-line chat session:
-
+#### Examples
 ```
-============================================================
-Multi-Agent System (Health + Calendar)
-============================================================
-Special commands:
-  - 'exit' or 'quit': Exit
-  - 'clear': Clear chat history
-============================================================
-
-You: I have a headache
-Processing...
-
-Assistant: Based on your headache symptoms, here are some recommendations...
+"Thêm chi tiêu: Ăn trưa tại nhà hàng, 150000 VND, Food, 2024-01-15"
+"Thêm chi tiêu: Đi taxi về nhà, 80000 VND, Transportation, 2024-01-15"
+"Thêm chi tiêu: Mua sách, 200000 VND, Miscellaneous, 2024-01-16"
 ```
 
-### Special Commands
-
-- `exit` or `quit`: Exit the application
-- `clear`: Clear chat history and start fresh
-- `thoát`: Vietnamese version of exit
-
-## Health Consultation
-
-### Types of Health Queries
-
-#### Symptom Analysis
+#### Natural Language
 ```
-"I have a headache and fever"
-"My stomach hurts after eating"
-"I feel dizzy when I stand up"
+"thêm vào chi tiêu của tôi hôm nay tốn 15000 VNĐ mua cơm"
+"hôm nay tôi chi 50000 VND cho xăng"
 ```
 
-#### General Health Questions
-```
-"What should I eat for better health?"
-"How much water should I drink daily?"
-"What exercises are good for back pain?"
-```
+### Viewing Expense History
 
-#### Medical Advice
+#### View All Expenses
 ```
-"I have diabetes, what should I avoid?"
-"I'm pregnant, what supplements should I take?"
-"My child has a fever, when should I worry?"
+"Xem lịch sử chi tiêu của tôi"
+"Hiển thị tất cả chi tiêu"
+"Lịch sử chi tiêu"
 ```
 
-### Health Response Features
-
-- **Symptom Analysis**: AI analyzes your symptoms
-- **Recommendations**: Personalized health advice
-- **Warning Signs**: When to seek immediate medical attention
-- **Lifestyle Tips**: Diet, exercise, and wellness suggestions
-- **Follow-up Questions**: AI may ask clarifying questions
-
-### Example Health Interaction
-
+#### Filter by Category
 ```
-User: I have a headache and mild fever, what should I do?
-
-Assistant: Based on your symptoms of headache and mild fever, here are some recommendations:
-
-1. **Immediate Care**:
-   - Rest in a cool, dark room
-   - Stay hydrated with water or clear fluids
-   - Take over-the-counter pain relievers (if not allergic)
-
-2. **Monitor Symptoms**:
-   - Check temperature regularly
-   - Watch for worsening symptoms
-   - Note any additional symptoms
-
-3. **When to Seek Medical Attention**:
-   - Fever above 101.3°F (38.5°C)
-   - Severe headache with neck stiffness
-   - Confusion or difficulty speaking
-   - Rash or difficulty breathing
-
-4. **General Advice**:
-   - Get plenty of rest
-   - Avoid screens and bright lights
-   - Eat light, easy-to-digest foods
-
-If symptoms worsen or persist beyond 2-3 days, please consult a healthcare professional.
+"Xem chi tiêu theo danh mục Food"
+"Hiển thị chi tiêu Transportation"
+"Chi tiêu Miscellaneous"
 ```
+
+#### Filter by Date Range
+```
+"Xem chi tiêu từ 2024-01-15 đến 2024-01-20"
+"Chi tiêu trong tháng này"
+"Chi tiêu tuần trước"
+```
+
+### Calculating Totals
+
+#### Total Spending
+```
+"Tính tổng chi tiêu"
+"Tổng chi tiêu trong tháng này"
+"Tổng chi tiêu từ ngày 1 đến ngày 31"
+```
+
+### Expense Categories
+
+VNASelf supports three main categories:
+
+- **Food**: Meals, groceries, restaurants
+- **Transportation**: Taxi, gas, public transport
+- **Miscellaneous**: Other expenses not in the above categories
 
 ## Calendar Management
 
-### Calendar Operations
+### Viewing Events
 
-#### Viewing Events
+#### Upcoming Events
 ```
-"Show me my upcoming appointments"
-"What's on my calendar today?"
-"List my events for this week"
-```
-
-#### Creating Events
-```
-"Create a doctor appointment for tomorrow at 2 PM"
-"Schedule a meeting with John on Friday at 10 AM"
-"Add a reminder for my medication at 8 AM daily"
+"Xem lịch sắp tới"
+"Hiển thị sự kiện sắp tới"
+"Lịch hôm nay"
 ```
 
-#### Managing Events
+#### Specific Date
 ```
-"Cancel my 3 PM appointment"
-"Move my meeting to 4 PM"
-"Update my doctor appointment to next Tuesday"
-```
-
-#### Searching Events
-```
-"Find all my doctor appointments"
-"Show me meetings with 'project' in the title"
-"When is my next dental checkup?"
+"Xem lịch ngày 2024-01-20"
+"Lịch thứ 2 tuần sau"
 ```
 
-### Date and Time Formats
+### Creating Events
 
-The system understands various date/time formats:
-
-#### Natural Language
-- "tomorrow", "next week", "next Monday"
-- "in 2 hours", "at 3 PM", "this afternoon"
-- "next month", "in 2 days"
-
-#### Specific Formats
-- Dates: "2025-10-25", "October 25, 2025"
-- Times: "2:00 PM", "14:00", "2 PM"
-- Combined: "2025-10-25 14:00"
-
-### Calendar Response Examples
-
-#### Viewing Events
+#### Basic Event Creation
 ```
-User: Show me my upcoming appointments
-
-Assistant: Here are your upcoming events:
-
-📅 **Today (October 20, 2025)**
-- 10:00 AM - Team Meeting (1 hour)
-- 2:00 PM - Doctor Appointment (30 minutes)
-
-📅 **Tomorrow (October 21, 2025)**
-- 9:00 AM - Project Review (2 hours)
-- 3:30 PM - Dentist Checkup (1 hour)
-
-📅 **This Week**
-- Wednesday: 11:00 AM - Client Call
-- Friday: 1:00 PM - Lunch Meeting
+"Tạo sự kiện: [title], [start_time], [end_time]"
+"Tạo cuộc họp lúc 15:00 hôm nay"
+"Lên lịch họp team ngày mai lúc 14:00"
 ```
 
-#### Creating Events
+#### Detailed Event Creation
 ```
-User: Create a doctor appointment for tomorrow at 2 PM
-
-Assistant: I'll create a doctor appointment for tomorrow at 2 PM.
-
-✅ **Event Created Successfully**
-- **Title**: Doctor Appointment
-- **Date**: October 21, 2025
-- **Time**: 2:00 PM - 3:00 PM
-- **Event ID**: abc123def456
-
-The appointment has been added to your calendar. You'll receive a reminder 15 minutes before the appointment.
+"Tạo sự kiện: Họp team, 2024-01-20 14:00, 2024-01-20 15:00"
+"Tạo cuộc họp với mô tả: Thảo luận dự án mới"
 ```
 
-#### Conflict Detection and Resolution
+### Managing Events
+
+#### Search Events
 ```
-User: Create a meeting tomorrow at 2:30 PM
-
-Assistant: I'll check for conflicts before creating your meeting.
-
-⚠️ **CONFLICT DETECTED**
-
-Found 1 conflicting event(s):
-
-Event ID: abc123def456
-Title: Doctor Appointment
-Time: 2025-10-21T14:00:00+07:00 - 2025-10-21T15:00:00+07:00
-
-I found a conflict with your existing "Doctor Appointment" from 2:00 PM to 3:00 PM.
-
-Here are your options to resolve this conflict:
-
-**Option 1: Move your new meeting to a different time**
-I can suggest alternative times for your meeting.
-
-**Option 2: Move the existing appointment**
-I can reschedule your "Doctor Appointment" to a different time.
-
-**Option 3: Cancel the existing appointment**
-I can delete the "Doctor Appointment" to make room for your meeting.
-
-Which option would you prefer?
+"Tìm sự kiện có từ 'họp'"
+"Tìm cuộc họp tuần này"
 ```
+
+#### Update Events
+```
+"Cập nhật sự kiện ID 123: thay đổi thời gian thành 16:00"
+"Đổi tên sự kiện thành 'Họp quan trọng'"
+```
+
+#### Delete Events
+```
+"Xóa sự kiện ID 123"
+"Xóa cuộc họp ngày mai"
+```
+
+### Conflict Resolution
+
+When creating events, VNASelf automatically checks for conflicts:
+
+1. **Conflict Detected**: The system will show conflicting events
+2. **Resolution Options**:
+   - Move the new event to a different time
+   - Move the existing event to a different time
+   - Delete the existing event
+3. **Choose Your Preferred Solution**: The system will execute your choice
 
 ## Advanced Features
 
-### Multi-Agent Routing
+### Agent Identification
 
-The system automatically routes your requests to the appropriate agent:
+Each response shows which agent processed your request:
 
-- **Health-related queries** → Health Agent
-- **Calendar-related queries** → Calendar Agent
-- **Mixed queries** → Supervisor Agent coordinates both
+- `[Finance Agent]` - For finance-related operations
+- `[Calendar Agent]` - For calendar-related operations
+- `[Supervisor Agent]` - For general queries and routing
 
-### Conversation Context
+### Multi-Language Support
 
-The system maintains context across interactions:
+VNASelf supports both Vietnamese and English:
 
+#### Vietnamese Examples
 ```
-User: I have a headache
-Assistant: [Provides headache advice]
-
-User: Should I schedule a doctor appointment?
-Assistant: Based on your headache symptoms, I recommend scheduling an appointment if...
-```
-
-### Error Handling
-
-The system provides helpful error messages:
-
-```
-User: Create an event yesterday at 2 PM
-Assistant: I can't create events in the past. Would you like to schedule this for today or tomorrow instead?
+"Thêm chi tiêu: Ăn trưa, 150000 VND, Food, 2024-01-15"
+"Xem lịch sắp tới"
+"Tính tổng chi tiêu"
 ```
 
-### Timezone Handling
+#### English Examples
+```
+"Add expense: Lunch, 150000 VND, Food, 2024-01-15"
+"Show upcoming events"
+"Calculate total spending"
+```
 
-All times are handled in Asia/Ho_Chi_Minh timezone (GMT+7):
+### Natural Language Processing
 
-- Times are automatically converted
-- Date calculations respect timezone
-- Event times are displayed in local timezone
+VNASelf understands natural language queries:
 
-## Best Practices
+```
+"hôm nay tôi chi 50000 VND cho xăng"
+"tạo cuộc họp lúc 3 giờ chiều"
+"xem tôi có lịch gì ngày mai không"
+```
 
-### For Health Queries
+## Tips and Best Practices
 
-1. **Be Specific**: Provide detailed symptom descriptions
-2. **Include Context**: Mention duration, severity, triggers
-3. **Ask Follow-ups**: Don't hesitate to ask clarifying questions
-4. **Seek Professional Help**: For serious symptoms, consult healthcare providers
+### Finance Management Tips
 
-### For Calendar Management
+1. **Be Specific**: Include amount, category, and date for accurate tracking
+2. **Use Categories**: Proper categorization helps with spending analysis
+3. **Regular Updates**: Add expenses regularly for better tracking
+4. **Review History**: Check your spending patterns regularly
 
-1. **Use Clear Dates**: Specify exact dates when possible
-2. **Include Duration**: Mention how long events should last
-3. **Add Descriptions**: Provide context for events
-4. **Check Availability**: Verify times before creating events
+### Calendar Management Tips
 
-### General Tips
+1. **Check Conflicts**: Always review conflict suggestions before confirming
+2. **Use Descriptive Titles**: Clear event titles help with searching
+3. **Set Reminders**: Consider setting up external reminders for important events
+4. **Regular Cleanup**: Periodically review and clean up old events
 
-1. **Be Natural**: Use conversational language
-2. **Ask Questions**: The AI can help clarify your needs
-3. **Use Suggestions**: Click suggestion buttons for quick actions
-4. **Restart When Needed**: Use restart button for new topics
+### General Usage Tips
+
+1. **Clear Communication**: Be specific about what you want to do
+2. **Use Natural Language**: Don't worry about perfect formatting
+3. **Check Agent Responses**: Look at which agent processed your request
+4. **Restart When Needed**: Use the restart button to clear conversation history
+
+### Troubleshooting
+
+1. **Agent Not Responding**: Try rephrasing your request
+2. **Incorrect Agent**: Be more specific about your intent
+3. **Missing Data**: Ensure you've provided all required information
+4. **System Errors**: Use the restart button to reset the conversation
 
 ## Examples
 
-### Complete Health Consultation
+### Complete Finance Workflow
 
 ```
-User: I've been having headaches for the past week, usually in the afternoon. They're not severe but persistent.
+User: "Thêm chi tiêu: Ăn trưa tại nhà hàng, 150000 VND, Food, 2024-01-15"
+Assistant: [Finance Agent] Chi tiêu đã được thêm thành công...
 
-Assistant: I understand you've been experiencing persistent afternoon headaches for a week. Let me help you with this.
+User: "Xem lịch sử chi tiêu của tôi"
+Assistant: [Finance Agent] Dưới đây là lịch sử chi tiêu của bạn...
 
-**Questions to better understand your situation:**
-1. Do the headaches occur at the same time each day?
-2. Are they associated with any triggers (stress, screen time, hunger)?
-3. Have you noticed any changes in your sleep or stress levels recently?
-
-**General recommendations for persistent headaches:**
-- Maintain regular sleep schedule
-- Stay hydrated throughout the day
-- Take breaks from screens every hour
-- Consider stress management techniques
-
-**When to seek medical attention:**
-- If headaches worsen or change pattern
-- If you experience vision changes or nausea
-- If headaches interfere with daily activities
-
-Would you like me to help you schedule a doctor appointment to discuss these headaches?
+User: "Tính tổng chi tiêu trong tháng này"
+Assistant: [Finance Agent] Tổng chi tiêu trong tháng này là 580,000 VND
 ```
 
-### Complete Calendar Management
+### Complete Calendar Workflow
 
 ```
-User: I need to schedule a series of follow-up appointments for my treatment.
+User: "Xem lịch sắp tới"
+Assistant: [Calendar Agent] Dưới đây là lịch sắp tới của bạn...
 
-Assistant: I'd be happy to help you schedule your follow-up appointments. Let me first check your current schedule to find available times.
+User: "Tạo cuộc họp lúc 15:00 hôm nay"
+Assistant: [Calendar Agent] Cuộc họp đã được tạo thành công...
 
-**Current upcoming appointments:**
-- October 22: 10:00 AM - Initial Consultation
-- October 25: 2:00 PM - Lab Work
-
-**Questions to help schedule your follow-ups:**
-1. How many follow-up appointments do you need?
-2. What's the recommended interval between appointments?
-3. Do you have any time preferences (morning, afternoon, specific days)?
-4. How long should each appointment be?
-
-**Suggested scheduling approach:**
-- Week 1: First follow-up (1 week after initial)
-- Week 2: Second follow-up (2 weeks after initial)
-- Month 1: Monthly check-in
-- Month 3: 3-month review
-
-Would you like me to create these appointments based on your initial consultation date?
+User: "Tìm sự kiện có từ 'họp'"
+Assistant: [Calendar Agent] Tìm thấy các sự kiện có từ 'họp'...
 ```
 
-### Mixed Health and Calendar Query
+## Getting Help
 
-```
-User: I have a doctor appointment tomorrow, but I'm feeling worse today. Should I go or reschedule?
+If you need assistance:
 
-Assistant: I understand you're feeling worse today and have a doctor appointment tomorrow. Let me help you decide.
+1. Check the [Troubleshooting Guide](TROUBLESHOOTING.md)
+2. Review the [API Documentation](API.md)
+3. Read the [Finance Agent Guide](FINANCE_AGENT.md)
+4. Create an issue in the repository
 
-**Health Assessment:**
-Since you're feeling worse, it's important to consider:
-- Are your symptoms getting significantly worse?
-- Do you have any emergency symptoms (severe pain, difficulty breathing, high fever)?
-- Can you wait until tomorrow, or do you need immediate attention?
+---
 
-**Appointment Options:**
-1. **Keep tomorrow's appointment** if symptoms are manageable
-2. **Reschedule to today** if you need earlier attention
-3. **Seek immediate care** if symptoms are severe
-
-**Current appointment details:**
-- Date: Tomorrow at 2:00 PM
-- Duration: 30 minutes
-- Doctor: Dr. Smith
-
-Would you like me to:
-1. Help you find an earlier appointment today?
-2. Keep your current appointment?
-3. Help you identify if you need immediate medical attention?
-
-What are your current symptoms, and how do they compare to when you scheduled the appointment?
-```
-
-## Troubleshooting Usage Issues
-
-### Common Problems
-
-#### Slow Responses
-- Check your internet connection
-- The AI may be processing complex requests
-- Try breaking down complex questions
-
-#### Incorrect Understanding
-- Be more specific in your requests
-- Use the restart button to clear context
-- Try rephrasing your question
-
-#### Calendar Access Issues
-- Verify Google Calendar permissions
-- Check if the calendar is shared with the service account
-- Ensure you're using the correct calendar
-
-### Getting Help
-
-1. Use the restart button to clear any issues
-2. Try the suggestion buttons for common tasks
-3. Be specific about what you need help with
-4. Check the troubleshooting guide for technical issues
+**Happy using VNASelf!**
