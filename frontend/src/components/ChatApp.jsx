@@ -4,6 +4,9 @@ import EyesTracking from '../EyesTracking'
 import { useAuth } from '../contexts/AuthContext'
 import AgentList from './AgentList'
 import AgentChat from './AgentChat'
+import { MessageCirclePlus } from 'lucide-react';
+import { Bot } from 'lucide-react';
+
 
 const ChatApp = () => {
   const [inputValue, setInputValue] = useState('')
@@ -371,19 +374,23 @@ const ChatApp = () => {
             <span className="new-chat-text">New chat</span>
           </button>
 
-          <nav className="navigation">
-            <button 
-              className={`nav-link ${currentView === 'main' ? 'active' : ''}`}
-              onClick={handleBackToMain}
-            >
-              <span className="nav-icon">💬</span>
-              Chats
-            </button>
+                <nav className="navigation">
+                  <button 
+                    className={`nav-link ${currentView === 'main' ? 'active' : ''}`}
+                    onClick={handleBackToMain}
+                  > 
+                    <span className="nav-icon">
+                      <MessageCirclePlus size={20} strokeWidth={2} />
+                    </span>
+                    Chats
+                  </button>
             <button 
               className={`nav-link ${currentView === 'agents' || currentView === 'agent-chat' ? 'active' : ''}`}
               onClick={handleAgentClick}
             >
-              <span className="nav-icon">📁</span>
+                    <span className="nav-icon">
+                      <Bot size={20} strokeWidth={2} />
+                    </span>
               Agent
             </button>
           </nav>

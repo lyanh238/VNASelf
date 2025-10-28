@@ -9,7 +9,15 @@
     "install": "cd frontend && npm install",
     "build": "cd frontend && npm run build"
   },
-  "keywords": ["vnaself", "multi-agent", "react", "fastapi"],
+  "keywords": [
+    "vnaself",
+    "multi-agent",
+    "react",
+    "fastapi"
+  ],
   "author": "VNASelf Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "lucide-react": "^0.548.0"
+  }
 }

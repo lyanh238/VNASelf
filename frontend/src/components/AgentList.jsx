@@ -1,5 +1,8 @@
 import React from 'react'
 import './AgentList.css'
+import { Bitcoin } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
+import { Brain } from 'lucide-react';
 
 const AgentList = ({ onAgentSelect }) => {
   // Available agents from the backend system
@@ -8,7 +11,7 @@ const AgentList = ({ onAgentSelect }) => {
       id: 'supervisor',
       name: 'Supervisor Agent',
       description: 'Intelligent supervisor that routes requests to appropriate specialized agents',
-      icon: '🎯',
+      icon: <Brain size={24}/>,
       capabilities: ['Calendar Management', 'Finance Tracking', 'Smart Routing'],
       color: '#6366f1'
     },
@@ -16,7 +19,7 @@ const AgentList = ({ onAgentSelect }) => {
       id: 'calendar',
       name: 'Calendar Agent',
       description: 'Specialized agent for Google Calendar operations with conflict detection',
-      icon: '📅',
+      icon: <CalendarDays size={24}/>,
       capabilities: ['Event Scheduling', 'Conflict Resolution', 'Time Optimization'],
       color: '#10b981'
     },
@@ -24,7 +27,7 @@ const AgentList = ({ onAgentSelect }) => {
       id: 'finance',
       name: 'Finance Agent',
       description: 'Smart financial assistant for expense tracking and budget management',
-      icon: '💰',
+      icon: <Bitcoin size={24} />,
       capabilities: ['Expense Tracking', 'Budget Analysis', 'Spending Reports'],
       color: '#f59e0b'
     }
