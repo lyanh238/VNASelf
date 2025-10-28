@@ -49,6 +49,10 @@ pip install -r requirements.txt
 
 **Option 1: Run both frontend and backend together:**
 ```bash
+npm install concurrently --save-dev
+```
+
+```bash
 npm run dev
 ```
 
