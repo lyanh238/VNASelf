@@ -4,6 +4,7 @@ import EyesTracking from '../EyesTracking'
 import { useAuth } from '../contexts/AuthContext'
 import AgentList from './AgentList'
 import AgentChat from './AgentChat'
+import ConversationList from './ConversationList'
 import { MessageCirclePlus } from 'lucide-react';
 import { Bot } from 'lucide-react';
 
@@ -23,6 +24,8 @@ const ChatApp = () => {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [currentView, setCurrentView] = useState('main') // 'main', 'agents', 'agent-chat'
   const [selectedAgent, setSelectedAgent] = useState(null)
+  const [conversations, setConversations] = useState([])
+  const [currentConversation, setCurrentConversation] = useState(null)
   const inputRef = useRef(null)
   const messagesEndRef = useRef(null)
   const { user, logout } = useAuth()
@@ -207,7 +210,7 @@ const ChatApp = () => {
         body: JSON.stringify({
           content: content.trim(),
           thread_id: currentThreadId,
-          user_id: user?.id || 'default_user'
+          user_id: user?.id || user?.email || 'default_user'
         })
       })
 
@@ -217,6 +220,10 @@ const ChatApp = () => {
         // Update thread ID if this is a new conversation
         if (!currentThreadId) {
           setCurrentThreadId(data.thread_id)
+          // Refresh conversation list to show the new conversation
+          if (user?.id) {
+            // We'll let the ConversationList component handle this
+          }
         }
 
         const assistantMessage = {
@@ -300,6 +307,21 @@ const ChatApp = () => {
     setInputValue('')
     setCurrentView('main')
     setSelectedAgent(null)
+    setCurrentConversation(null)
+  }
+
+  const handleConversationSelect = async (conversation) => {
+    setCurrentConversation(conversation)
+    setCurrentThreadId(conversation.thread_id)
+    setShowWelcome(false)
+    
+    // Load the conversation history
+    await loadChatHistory(conversation.thread_id)
+  }
+
+  const refreshConversations = () => {
+    // This will be called by ConversationList when needed
+    // We can add logic here if needed
   }
 
   // Agent routing functions
@@ -396,27 +418,12 @@ const ChatApp = () => {
           </nav>
 
           <div className="recents-section">
-            <div className="recents-group">
-              <h3>Today</h3>
-              <div className="recent-item">Medical checkup scheduling</div>
-              <div className="recent-item">Two-month sprint planning strat...</div>
-              <div className="recent-item">Scheduling plans</div>
-              <div className="recent-item">MCP adapter technology</div>
-            </div>
-            
-            <div className="recents-group">
-              <h3>Yesterday</h3>
-              <div className="recent-item">Medical appointment at Thu Duc...</div>
-              <div className="recent-item">Doctor appointment scheduling</div>
-              <div className="recent-item">NWS weather alerts and forecas...</div>
-              <div className="recent-item">Today's meeting schedule</div>
-            </div>
-
-            <div className="recents-group">
-              <h3>Previous 7 Days</h3>
-              <div className="recent-item">New York weather alerts</div>
-              <div className="recent-item">Running X2D35 locally</div>
-            </div>
+            <ConversationList 
+              onConversationSelect={handleConversationSelect}
+              currentThreadId={currentThreadId}
+              onNewChat={handleNewChat}
+              refreshTrigger={currentThreadId}
+            />
           </div>
 
           <div className="user-profile">

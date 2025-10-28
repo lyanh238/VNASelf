@@ -17,6 +17,7 @@
   --bg-secondary: #1F1E1D;
   --bg-tertiary: #2a2a2a;
   --bg-hover: #333333;
+  --bg-active: #404040;
   --input-bg: #1a1a1a;
   --text-primary: #ffffff;
   --text-secondary: #b3b3b3;
@@ -27,6 +28,9 @@
   --accent-color: #ffffff;
   --accent-bg: #ffffff;
   --accent-text: #000000;
+  --accent-color-rgb: 255, 255, 255;
+  --danger-color: #ef4444;
+  --danger-color-rgb: 239, 68, 68;
   --gradient-start: #D97706;
   --gradient-end: #F59E0B;
   --user-gradient-start: #F97316;
@@ -39,6 +43,7 @@
   --bg-secondary: #F5F4ED;
   --bg-tertiary: #e9ecef;
   --bg-hover: #dee2e6;
+  --bg-active: #ced4da;
   --input-bg: #ffffff;
   --text-primary: #212529;
   --text-secondary: #495057;
@@ -49,6 +54,9 @@
   --accent-color: #000000;
   --accent-bg: #000000;
   --accent-text: #ffffff;
+  --accent-color-rgb: 0, 0, 0;
+  --danger-color: #dc2626;
+  --danger-color-rgb: 220, 38, 38;
   --gradient-start: #D97706;
   --gradient-end: #F59E0B;
   --user-gradient-start: #F97316;
@@ -380,6 +388,21 @@ body {
 .recent-item:hover {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+.recent-item.active {
+  background-color: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.recent-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--accent-color);
 }
 
 /* User Profile */

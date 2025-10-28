@@ -225,7 +225,7 @@ const ChatInterface = ({
           <div key={message.id} className={`message ${message.type}`}>
             <div className="message-avatar">
               {message.type === 'user' ? 'U' : (
-                <img src="/src/assets/qai_gen.png" alt="QAI" style={{ width: '150%', height: '150%', objectFit: 'contain', borderRadius: '50%' }} />
+                <img src="frontend/public/qai_gen.png" alt="QAI" style={{ width: '150%', height: '150%', objectFit: 'contain', borderRadius: '50%' }} />
               )}
             </div>
             <div className="message-content">

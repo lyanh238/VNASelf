@@ -86,3 +86,6 @@ Thumbs.db
 *.bak
 
 backend/account.json
+
+backend/credentials.json
+backend/conversations

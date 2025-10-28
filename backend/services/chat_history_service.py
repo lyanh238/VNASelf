@@ -19,7 +19,6 @@ class LogsService:
     
     def __init__(self):
         self.engine = None
-        self.session = None
         self._initialized = False
 
     async def initialize(self):
@@ -29,23 +28,28 @@ class LogsService:
         
         try:
             if Config.NEON_DATABASE_URL:
-                self.engine = create_engine(Config.NEON_DATABASE_URL)
+                # Configure engine with proper SSL settings and connection pooling
+                self.engine = create_engine(
+                    Config.NEON_DATABASE_URL,
+                    pool_size=5,
+                    max_overflow=10,
+                    pool_pre_ping=True,  # This will test connections before use
+                    pool_recycle=3600,   # Recycle connections every hour
+                    connect_args={
+                        "sslmode": "require",
+                        "connect_timeout": 10,
+                        "application_name": "x2d35_logs_service"
+                    }
+                )
                 # Check if logs table exists, if not create it
                 try:
                     Base.metadata.create_all(self.engine)
                     print("[OK] Logs Service connected to Neon Database")
                 except Exception as e:
                     print(f"WARNING: Table creation warning: {str(e)}")
-                    # Try to use existing table
-                    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-                    self.session = SessionLocal()
                     print("[OK] Logs Service connected to existing logs table")
             else:
                 print("WARNING: NEON_DATABASE_URL not set - logs will not be saved")
-            
-            if not self.session:
-                SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-                self.session = SessionLocal()
             
             self._initialized = True
             
@@ -55,10 +59,17 @@ class LogsService:
             self._initialized = True
     
     def get_session(self) -> Optional[Session]:
-        """Get database session."""
-        if not self.session:
+        """Get database session with proper error handling."""
+        if not self.engine:
             return None
-        return self.session
+        
+        try:
+            # Create a new session for each operation to avoid stale connections
+            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+            return SessionLocal()
+        except Exception as e:
+            print(f"Error creating database session: {str(e)}")
+            return None
     
     async def save_message(
         self, 
@@ -71,7 +82,8 @@ class LogsService:
         timestamp: Optional[int] = None
     ) -> Optional[Logs]:
         """Save a conversation log to database."""
-        if not self.session:
+        session = self.get_session()
+        if not session:
             return None
         
         try:
@@ -89,19 +101,22 @@ class LogsService:
                 timestamp=timestamp
             )
             
-            self.session.add(log_entry)
-            self.session.commit()
-            self.session.refresh(log_entry)
+            session.add(log_entry)
+            session.commit()
+            session.refresh(log_entry)
             
             return log_entry
             
         except SQLAlchemyError as e:
-            self.session.rollback()
+            session.rollback()
             print(f"Error saving log entry: {str(e)}")
             return None
         except Exception as e:
+            session.rollback()
             print(f"Unexpected error saving log entry: {str(e)}")
             return None
+        finally:
+            session.close()
     
     async def get_chat_history(
         self, 
@@ -203,8 +218,6 @@ class LogsService:
     async def close(self):
         """Close database connection."""
         try:
-            if self.session:
-                self.session.close()
             if self.engine:
                 self.engine.dispose()
             print("[OK] Logs Service closed")

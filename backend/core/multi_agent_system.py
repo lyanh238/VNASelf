@@ -12,6 +12,9 @@ from langchain_core.messages import HumanMessage
 from agents import CalendarAgent, SupervisorAgent, FinanceAgent
 from services import MCPService
 from services.chat_history_service import LogsService
+from services.conversation_service import ConversationService
+from services.conversation_title_service import ConversationTitleService
+from services.per_conversation_storage_service import PerConversationStorageService
 from services.payment_history_service import PaymentHistoryService
 from .state_manager import StateManager
 
@@ -24,6 +27,9 @@ class MultiAgentSystem:
         self.model = ChatOpenAI(model=model_name)
         self.mcp_service = MCPService()
         self.logs_service = LogsService()
+        self.conversation_service = ConversationService()
+        self.conversation_title_service = ConversationTitleService()
+        self.per_conversation_storage = PerConversationStorageService()
         self.payment_service = PaymentHistoryService()
         self.state_manager = StateManager()
         
@@ -46,6 +52,9 @@ class MultiAgentSystem:
         import asyncio
         await asyncio.gather(
             self.logs_service.initialize(),
+            self.conversation_service.initialize(),
+            self.conversation_title_service.initialize(),
+            self.per_conversation_storage.initialize(),
             self.payment_service.initialize(),
             self.mcp_service.initialize(),
             return_exceptions=True  # Don't fail if one service fails
@@ -104,10 +113,23 @@ class MultiAgentSystem:
         if thread_id:
             config["configurable"]["thread_id"] = thread_id
         
-        # Save user message to logs
+        # Save user message to both logs and per-conversation storage
         current_timestamp = int(datetime.now().timestamp() * 1000)
+        current_thread_id = thread_id or config["configurable"]["thread_id"]
+        
+        # Save to logs service (for backward compatibility)
         await self.logs_service.save_message(
-            thread_id=thread_id or config["configurable"]["thread_id"],
+            thread_id=current_thread_id,
+            message_type="user",
+            content=message,
+            user_id=user_id,
+            metadata={"timestamp": datetime.now().isoformat()},
+            timestamp=current_timestamp
+        )
+        
+        # Save to per-conversation storage
+        await self.per_conversation_storage.save_message(
+            thread_id=current_thread_id,
             message_type="user",
             content=message,
             user_id=user_id,
@@ -156,9 +178,9 @@ class MultiAgentSystem:
         # Format response with agent information
         formatted_response = f"[{agent_name}] {response}"
         
-        # Save assistant response to logs
+        # Save assistant response to both logs and per-conversation storage
         await self.logs_service.save_message(
-            thread_id=thread_id or config["configurable"]["thread_id"],
+            thread_id=current_thread_id,
             message_type="assistant",
             content=response,
             agent_name=agent_name,
@@ -167,12 +189,50 @@ class MultiAgentSystem:
             timestamp=current_timestamp + 1  # Slightly after user message
         )
         
+        # Save to per-conversation storage
+        await self.per_conversation_storage.save_message(
+            thread_id=current_thread_id,
+            message_type="assistant",
+            content=response,
+            agent_name=agent_name,
+            user_id=user_id,
+            metadata={"timestamp": datetime.now().isoformat()},
+            timestamp=current_timestamp + 1
+        )
+        
         return formatted_response
     
     async def get_chat_history(self, thread_id: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """Get conversation logs for a thread."""
-        messages = await self.logs_service.get_chat_history(thread_id, limit)
-        return [msg.to_dict() for msg in messages]
+        """Get conversation logs for a thread using per-conversation storage."""
+        try:
+            # Try to get from per-conversation storage first
+            messages = await self.per_conversation_storage.get_conversation_messages(thread_id, limit)
+            if messages:
+                return messages
+            
+            # Fallback to logs service if per-conversation storage is empty
+            messages = await self.logs_service.get_chat_history(thread_id, limit)
+            return [msg.to_dict() for msg in messages]
+            
+        except Exception as e:
+            print(f"Error getting chat history: {str(e)}")
+            return []
+    
+    async def get_all_conversation_messages(self, thread_id: str) -> List[Dict[str, Any]]:
+        """Get all messages for a conversation (no pagination)."""
+        try:
+            # Try to get from per-conversation storage first
+            messages = await self.per_conversation_storage.get_all_conversation_messages(thread_id)
+            if messages:
+                return messages
+            
+            # Fallback to logs service if per-conversation storage is empty
+            messages = await self.logs_service.get_chat_history(thread_id, limit=1000)  # Large limit
+            return [msg.to_dict() for msg in messages]
+            
+        except Exception as e:
+            print(f"Error getting all conversation messages: {str(e)}")
+            return []
     
     async def get_user_chat_history(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Get conversation logs for a specific user."""
@@ -184,8 +244,19 @@ class MultiAgentSystem:
         return await self.logs_service.get_threads_for_user(user_id)
     
     async def delete_thread(self, thread_id: str) -> bool:
-        """Delete a conversation thread."""
-        return await self.logs_service.delete_thread(thread_id)
+        """Delete a conversation thread from both storage systems."""
+        try:
+            # Delete from logs service
+            logs_deleted = await self.logs_service.delete_thread(thread_id)
+            
+            # Delete from per-conversation storage
+            per_conversation_deleted = await self.per_conversation_storage.delete_conversation_messages(thread_id)
+            
+            return logs_deleted or per_conversation_deleted
+            
+        except Exception as e:
+            print(f"Error deleting thread: {str(e)}")
+            return False
     
     async def chat_interactive(self, user_id: Optional[str] = None):
         """Start interactive chat session."""
