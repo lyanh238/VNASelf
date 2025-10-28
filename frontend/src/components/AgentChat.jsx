@@ -53,7 +53,7 @@ const AgentChat = ({ agent, onBack }) => {
   const aiWarningTexts = [
     "AI-generated content may not always be accurate. Please verify important information independently.", // English
     "AIが生成したコンテンツは常に正確とは限りません。重要な情報は独立して確認してください。", // Japanese
-    "Nội dung do AI tạo ra có thể không phải lúc nào cũng chính xác. Vui lòng xác minh thông tin quan trọng một cách độc lập.", // Vietnamese
+    "Nội dung do AI tạo ra có thể không phải lúc nào cũng chính xác. Vui lòng xác minh lại thật kĩ.", // Vietnamese
     "AI生成的内容可能并不总是准确的。请独立验证重要信息。" // Chinese
   ]
 

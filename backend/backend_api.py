@@ -16,6 +16,8 @@ from pydantic import BaseModel
 import uvicorn
 
 from core import MultiAgentSystem
+from services.conversation_service import ConversationService
+from services.conversation_title_service import ConversationTitleService
 
 # Initialize FastAPI app
 app = FastAPI(title="VNASelf API", version="1.0.0")
@@ -31,6 +33,8 @@ app.add_middleware(
 
 # Global multi-agent system instance
 multi_agent_system = None
+conversation_service = None
+conversation_title_service = None
 
 # Account file path
 ACCOUNT_FILE_PATH = "account.json"
@@ -56,6 +60,20 @@ class ThreadSummary(BaseModel):
     title: str
     last_message: str
     timestamp: int
+
+class ConversationData(BaseModel):
+    thread_id: str
+    title: str
+    summary: Optional[str] = None
+    message_count: int = 0
+    last_message_content: Optional[str] = None
+    last_message_timestamp: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class ConversationUpdate(BaseModel):
+    title: Optional[str] = None
+    summary: Optional[str] = None
 
 class AccountData(BaseModel):
     name: str
@@ -138,22 +156,33 @@ manager = ConnectionManager()
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize the multi-agent system on startup."""
-    global multi_agent_system
+    """Initialize the multi-agent system and services on startup."""
+    global multi_agent_system, conversation_service, conversation_title_service
     try:
+        # Initialize multi-agent system
         multi_agent_system = MultiAgentSystem()
         await multi_agent_system.initialize()
         print("[OK] Multi-Agent System initialized successfully!")
+        
+        # Initialize conversation services
+        conversation_service = ConversationService()
+        await conversation_service.initialize()
+        
+        conversation_title_service = ConversationTitleService()
+        await conversation_title_service.initialize()
+        
     except Exception as e:
-        print(f"[ERROR] Error initializing Multi-Agent System: {str(e)}")
+        print(f"[ERROR] Error initializing services: {str(e)}")
         raise
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown."""
-    global multi_agent_system
+    global multi_agent_system, conversation_service, conversation_title_service
     if multi_agent_system:
         await multi_agent_system.close()
+    if conversation_service:
+        await conversation_service.close()
 
 @app.get("/")
 async def root():
@@ -184,6 +213,34 @@ async def chat_endpoint(message: ChatMessage):
             agent_name = response.split("]")[0][1:]
             response = response.split("]", 1)[1].strip()
         
+        # Handle conversation metadata
+        if conversation_service:
+            # Check if this is a new conversation
+            existing_conversation = await conversation_service.get_conversation_by_thread_id(thread_id)
+            
+            if not existing_conversation:
+                # Generate title from the first message
+                title = "New conversation"
+                if conversation_title_service:
+                    title = await conversation_title_service.generate_title_from_content(message.content)
+                
+                # Create new conversation
+                await conversation_service.create_conversation(
+                    thread_id=thread_id,
+                    user_id=user_id,
+                    title=title
+                )
+            else:
+                # Update existing conversation
+                await conversation_service.increment_message_count(thread_id)
+            
+            # Update last message info
+            await conversation_service.update_conversation_last_message(
+                thread_id=thread_id,
+                last_message_content=response,
+                last_message_timestamp=int(datetime.now().timestamp() * 1000)
+            )
+        
         return ChatResponse(
             content=response,
             agent_name=agent_name,
@@ -201,7 +258,8 @@ async def get_chat_history(thread_id: str, limit: int = 50):
         raise HTTPException(status_code=500, detail="Multi-agent system not initialized")
     
     try:
-        messages = await multi_agent_system.get_chat_history(thread_id, limit)
+        # Get all messages for the conversation (no pagination for full restoration)
+        messages = await multi_agent_system.get_all_conversation_messages(thread_id)
         return ChatHistory(thread_id=thread_id, messages=messages)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting chat history: {str(e)}")
@@ -259,6 +317,131 @@ async def delete_thread(thread_id: str):
             raise HTTPException(status_code=404, detail="Thread not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting thread: {str(e)}")
+
+# Conversation management endpoints
+@app.get("/api/conversations/{user_id}", response_model=List[ConversationData])
+async def get_user_conversations(user_id: str, limit: int = 50, offset: int = 0):
+    """Get all conversations for a user."""
+    if not conversation_service:
+        raise HTTPException(status_code=500, detail="Conversation service not initialized")
+    
+    try:
+        conversations = await conversation_service.get_user_conversations(user_id, limit, offset)
+        return [ConversationData(**conv.to_dict()) for conv in conversations]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting conversations: {str(e)}")
+
+@app.get("/api/conversations/{user_id}/{thread_id}", response_model=ConversationData)
+async def get_conversation(user_id: str, thread_id: str):
+    """Get a specific conversation."""
+    if not conversation_service:
+        raise HTTPException(status_code=500, detail="Conversation service not initialized")
+    
+    try:
+        conversation = await conversation_service.get_conversation_by_thread_id(thread_id)
+        if not conversation or conversation.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        return ConversationData(**conversation.to_dict())
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting conversation: {str(e)}")
+
+@app.put("/api/conversations/{user_id}/{thread_id}")
+async def update_conversation(user_id: str, thread_id: str, update_data: ConversationUpdate):
+    """Update conversation title or summary."""
+    if not conversation_service:
+        raise HTTPException(status_code=500, detail="Conversation service not initialized")
+    
+    try:
+        # Verify conversation exists and belongs to user
+        conversation = await conversation_service.get_conversation_by_thread_id(thread_id)
+        if not conversation or conversation.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        success = True
+        
+        # Update title if provided
+        if update_data.title:
+            success &= await conversation_service.update_conversation_title(thread_id, update_data.title)
+        
+        # Update summary if provided
+        if update_data.summary:
+            success &= await conversation_service.update_conversation_summary(thread_id, update_data.summary)
+        
+        if success:
+            return {"message": "Conversation updated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update conversation")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating conversation: {str(e)}")
+
+@app.delete("/api/conversations/{user_id}/{thread_id}")
+async def delete_conversation(user_id: str, thread_id: str):
+    """Delete a conversation."""
+    if not conversation_service:
+        raise HTTPException(status_code=500, detail="Conversation service not initialized")
+    
+    try:
+        # Verify conversation exists and belongs to user
+        conversation = await conversation_service.get_conversation_by_thread_id(thread_id)
+        if not conversation or conversation.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        # Delete conversation metadata
+        success = await conversation_service.delete_conversation(thread_id)
+        
+        # Also delete the thread messages if multi-agent system is available
+        if multi_agent_system:
+            await multi_agent_system.delete_thread(thread_id)
+        
+        if success:
+            return {"message": "Conversation deleted successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete conversation")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting conversation: {str(e)}")
+
+@app.post("/api/conversations/{user_id}/{thread_id}/regenerate-title")
+async def regenerate_conversation_title(user_id: str, thread_id: str):
+    """Regenerate conversation title using LLM."""
+    if not conversation_service or not conversation_title_service:
+        raise HTTPException(status_code=500, detail="Services not initialized")
+    
+    try:
+        # Verify conversation exists and belongs to user
+        conversation = await conversation_service.get_conversation_by_thread_id(thread_id)
+        if not conversation or conversation.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        # Get conversation messages
+        if not multi_agent_system:
+            raise HTTPException(status_code=500, detail="Multi-agent system not initialized")
+        
+        messages = await multi_agent_system.get_chat_history(thread_id, limit=10)
+        
+        # Generate new title
+        new_title = await conversation_title_service.generate_title_from_messages(messages)
+        
+        # Update conversation title
+        success = await conversation_service.update_conversation_title(thread_id, new_title)
+        
+        if success:
+            return {"title": new_title, "message": "Title regenerated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update title")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error regenerating title: {str(e)}")
 
 # Account management endpoints
 @app.post("/api/accounts/save")

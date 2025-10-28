@@ -14,7 +14,7 @@ const AppContent = () => {
     <div className="app">
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p>Đang tải...</p>
+          <p>Loading...</p>
       </div>
     </div>
     )
