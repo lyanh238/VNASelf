@@ -238,10 +238,6 @@ const ConversationList = ({ onConversationSelect, currentThreadId, onNewChat, re
                       ) : (
                         <>
                           <div className="conversation-title">{conversation.title}</div>
-                          <div className="conversation-preview">
-                            {conversation.last_message_content?.substring(0, 60)}
-                            {conversation.last_message_content?.length > 60 ? '...' : ''}
-                          </div>
                         </>
                       )}
                     </div>

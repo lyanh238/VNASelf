@@ -573,6 +573,18 @@ body {
   color: white;
 }
 
+.main-content .message.user .message-avatar .user-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  font-size: 14px;
+}
+
 .main-content .message.assistant .message-avatar {
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
   color: white;
@@ -1024,4 +1036,124 @@ body {
 .chat-input-container,
 .prompt-suggestions {
   animation: fadeIn 0.5s ease-out;
+}
+
+/* Search Options Dropdown */
+.input-controls-left {
+  position: relative;
+  z-index: 10;
+  overflow: visible;
+}
+
+.search-options {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 180px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  transform: translateY(-4px);
+  opacity: 0;
+  visibility: hidden;
+  display: none;
+  transition: all 0.2s ease-out;
+}
+
+.search-options.show {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+}
+
+.search-option {
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-option:last-child {
+  border-bottom: none;
+}
+
+.search-option:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.search-option:active {
+  transform: scale(0.98);
+}
+
+/* Web Search Indicator - Blue Style like ChatGPT */
+.web-search-indicator-blue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-left: 8px;
+  border: 1px solid var(--border-color);
+  position: relative;
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.web-search-icon {
+  font-size: 16px;
+}
+
+.web-search-text {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.cancel-web-search {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  margin-left: 4px;
+  width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.web-search-indicator-blue:hover .cancel-web-search {
+  width: auto;
+  opacity: 1;
+}
+
+.cancel-web-search:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }

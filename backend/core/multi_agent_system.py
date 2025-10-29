@@ -9,7 +9,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-from agents import CalendarAgent, SupervisorAgent, FinanceAgent
+from agents import CalendarAgent, SupervisorAgent, FinanceAgent, SearchAgent
 from services import MCPService
 from services.chat_history_service import LogsService
 from services.conversation_service import ConversationService
@@ -36,7 +36,8 @@ class MultiAgentSystem:
         # Initialize agents
         self.calendar_agent = CalendarAgent(self.model, self.mcp_service)
         self.finance_agent = FinanceAgent(self.model, self.payment_service)
-        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent)
+        self.search_agent = SearchAgent(self.model)
+        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent)
         
         self.graph = None
         self._initialized = False
@@ -103,9 +104,15 @@ class MultiAgentSystem:
         self.graph = builder.compile(checkpointer=self.state_manager.get_memory())
         print(" Agent graph built successfully!")
     
-    async def process_message(self, message: str, thread_id: Optional[str] = None, user_id: Optional[str] = None) -> str:
+    async def process_message(self, message: str, thread_id: Optional[str] = None, user_id: Optional[str] = None, model_name: Optional[str] = None) -> str:
         """Process a message through the multi-agent system."""
         if not self._initialized:
+            await self.initialize()
+        
+        # Update model if model_name is provided
+        if model_name and model_name != self.model.model_name:
+            self.model = ChatOpenAI(model=model_name)
+            # Re-initialize agents with new model
             await self.initialize()
         
         # Use provided thread_id or current one
@@ -117,13 +124,16 @@ class MultiAgentSystem:
         current_timestamp = int(datetime.now().timestamp() * 1000)
         current_thread_id = thread_id or config["configurable"]["thread_id"]
         
+        # Get user name from user_id (assuming user_id is email or contains name info)
+        user_name = user_id if user_id and user_id != "default_user" else "You"
+        
         # Save to logs service (for backward compatibility)
         await self.logs_service.save_message(
             thread_id=current_thread_id,
             message_type="user",
             content=message,
             user_id=user_id,
-            metadata={"timestamp": datetime.now().isoformat()},
+            metadata={"timestamp": datetime.now().isoformat(), "user_name": user_name},
             timestamp=current_timestamp
         )
         
@@ -133,7 +143,7 @@ class MultiAgentSystem:
             message_type="user",
             content=message,
             user_id=user_id,
-            metadata={"timestamp": datetime.now().isoformat()},
+            metadata={"timestamp": datetime.now().isoformat(), "user_name": user_name},
             timestamp=current_timestamp
         )
         
@@ -166,6 +176,10 @@ class MultiAgentSystem:
                     elif any(cal_tool in tool_name.lower() for cal_tool in ['list_upcoming_events', 'create_event', 'get_events', 'delete_event', 'update_event', 'move_event']):
                         agent_name = "Calendar Agent"
                         break
+                    # Check for search tools
+                    elif any(search_tool in tool_name.lower() for search_tool in ['tavily_search', 'mock_search']):
+                        agent_name = "Search Agent"
+                        break
         
         # If no tool calls found, try to determine from response content
         if not tool_calls_found:
@@ -174,6 +188,8 @@ class MultiAgentSystem:
                 agent_name = "Finance Agent"
             elif any(keyword in response_lower for keyword in ['lịch', 'sự kiện', 'event', 'calendar', 'thời gian']):
                 agent_name = "Calendar Agent"
+            elif any(keyword in response_lower for keyword in ['tìm kiếm web', 'kết quả tìm kiếm', 'nguồn tin', 'tavily']):
+                agent_name = "Search Agent"
         
         # Format response with agent information
         formatted_response = f"[{agent_name}] {response}"

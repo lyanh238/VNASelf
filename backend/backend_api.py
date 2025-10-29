@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uvicorn
 
+from contextlib import asynccontextmanager
 from core import MultiAgentSystem
 from services.conversation_service import ConversationService
 from services.conversation_title_service import ConversationTitleService
@@ -44,6 +45,7 @@ class ChatMessage(BaseModel):
     content: str
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
+    model_name: Optional[str] = "gpt-4o"
 
 class ChatResponse(BaseModel):
     content: str
@@ -153,36 +155,43 @@ class ConnectionManager:
         await websocket.send_text(message)
 
 manager = ConnectionManager()
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the multi-agent system and services on startup."""
+multi_agent_system : Optional[MultiAgentSystem] = None
+conversation_service : Optional[ConversationService] = None
+conversation_title_service : Optional[ConversationTitleService] = None
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown lifecycle for FastAPI app."""
     global multi_agent_system, conversation_service, conversation_title_service
+
+    # --- Startup logic ---
     try:
         # Initialize multi-agent system
         multi_agent_system = MultiAgentSystem()
         await multi_agent_system.initialize()
         print("[OK] Multi-Agent System initialized successfully!")
-        
+
         # Initialize conversation services
         conversation_service = ConversationService()
         await conversation_service.initialize()
-        
+
         conversation_title_service = ConversationTitleService()
         await conversation_title_service.initialize()
-        
+
     except Exception as e:
         print(f"[ERROR] Error initializing services: {str(e)}")
         raise
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown."""
-    global multi_agent_system, conversation_service, conversation_title_service
+    # Yield control to FastAPI runtime (app runs while suspended here)
+    yield
+
+    # --- Shutdown logic ---
     if multi_agent_system:
         await multi_agent_system.close()
     if conversation_service:
         await conversation_service.close()
+    # if conversation_title_service:
+    #     await conversation_title_service.close()
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
@@ -204,7 +213,8 @@ async def chat_endpoint(message: ChatMessage):
         response = await multi_agent_system.process_message(
             message.content,
             thread_id=thread_id,
-            user_id=user_id
+            user_id=user_id,
+            model_name=message.model_name
         )
         
         # Extract agent name from response

@@ -1,3 +1,5 @@
+//main-content interface
+
 import { useState, useEffect, useRef } from 'react'
 import LampToggle from '../LampToggle'
 import EyesTracking from '../EyesTracking'
@@ -7,11 +9,12 @@ import AgentChat from './AgentChat'
 import ConversationList from './ConversationList'
 import { MessageCirclePlus } from 'lucide-react';
 import { Bot } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 
 const ChatApp = () => {
   const [inputValue, setInputValue] = useState('')
-  const [selectedModel, setSelectedModel] = useState('Sonnet 4.5')
+  const [selectedModel, setSelectedModel] = useState('gpt-4o')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [greeting, setGreeting] = useState('')
@@ -26,9 +29,35 @@ const ChatApp = () => {
   const [selectedAgent, setSelectedAgent] = useState(null)
   const [conversations, setConversations] = useState([])
   const [currentConversation, setCurrentConversation] = useState(null)
+  const [showSearchOptions, setShowSearchOptions] = useState(false)
+  const [isWebSearchMode, setIsWebSearchMode] = useState(false)
+  const [selectedTool, setSelectedTool] = useState(null)
   const inputRef = useRef(null)
   const messagesEndRef = useRef(null)
   const { user, logout } = useAuth()
+
+  // Close search options when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showSearchOptions && !event.target.closest('.input-controls-left')) {
+        setShowSearchOptions(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showSearchOptions])
+
+  // Reset web search mode when switching views
+  useEffect(() => {
+    if (currentView !== 'main') {
+      setIsWebSearchMode(false)
+      setShowSearchOptions(false)
+      setSelectedTool(null)
+    }
+  }, [currentView])
 
   // Load theme preference from localStorage on component mount
   useEffect(() => {
@@ -179,7 +208,23 @@ const ChatApp = () => {
       const response = await fetch(`/api/chat/history/${threadId}`)
       if (response.ok) {
         const data = await response.json()
-        setMessages(data.messages || [])
+        // Process messages to ensure proper user information
+        const processedMessages = (data.messages || []).map(message => {
+          if (message.message_type === 'user' || message.type === 'user') {
+            return {
+              ...message,
+              type: 'user',
+              user_name: message.metadata?.user_name || user?.name || 'You'
+            }
+          } else {
+            return {
+              ...message,
+              type: 'assistant',
+              agent_name: message.agent_name || 'VNASelf'
+            }
+          }
+        })
+        setMessages(processedMessages)
       }
     } catch (error) {
       console.error('Error loading chat history:', error)
@@ -210,7 +255,8 @@ const ChatApp = () => {
         body: JSON.stringify({
           content: content.trim(),
           thread_id: currentThreadId,
-          user_id: user?.id || user?.email || 'default_user'
+          user_id: user?.id || user?.email || 'default_user',
+          model_name: selectedModel
         })
       })
 
@@ -282,9 +328,55 @@ const ChatApp = () => {
 
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
-      sendMessage(inputValue)
+      if (selectedTool === 'web-search') {
+        // Send web search query
+        sendMessage(`Tìm kiếm web: ${inputValue}`)
+        setSelectedTool(null)
+        setIsWebSearchMode(false)
+      } else if (selectedTool === 'document-search') {
+        // Send document search query
+        sendMessage(`Tìm kiếm tài liệu: ${inputValue}`)
+        setSelectedTool(null)
+        setIsWebSearchMode(false)
+      } else {
+        // Send normal message
+        sendMessage(inputValue)
+      }
       setInputValue('')
     }
+  }
+
+  const handleToolSelect = (tool) => {
+    setSelectedTool(tool)
+    setIsWebSearchMode(true)
+    setShowSearchOptions(false)
+    // Focus input field
+    if (inputRef.current) {
+      inputRef.current.focus()
+    }
+  }
+
+  const handleCancelSearch = () => {
+    setIsWebSearchMode(false)
+    setSelectedTool(null)
+  }
+
+  const getPlaceholderText = () => {
+    if (selectedTool === 'web-search') {
+      return "Nhập từ khóa tìm kiếm web..."
+    } else if (selectedTool === 'document-search') {
+      return "Nhập từ khóa tìm kiếm tài liệu..."
+    }
+    return "How can I help you today?"
+  }
+
+  const getToolDisplayName = () => {
+    if (selectedTool === 'web-search') {
+      return "Web Search"
+    } else if (selectedTool === 'document-search') {
+      return "Document Search"
+    }
+    return "Search"
   }
 
   const handleKeyPress = (e) => {
@@ -456,26 +548,64 @@ const ChatApp = () => {
               <div className="chat-input-container">
                 <div className="chat-input">
                   <div className="input-controls-left">
-                    <button className="input-btn">+</button>
+                    <button 
+                      className="input-btn" 
+                      onClick={() => setShowSearchOptions(!showSearchOptions)}
+                      title="Tùy chọn tìm kiếm"
+                    >
+                      +
+                    </button>
+                    <div className={`search-options ${showSearchOptions ? 'show' : ''}`}>
+                      <div className="search-option" onClick={() => handleToolSelect('web-search')}>
+                        <span>🌐</span>
+                        <span>Web Search</span>
+                      </div>
+                      <div className="search-option" onClick={() => handleToolSelect('document-search')}>
+                      <FileText size={15} strokeWidth={2} />
+                        <span>Document Search</span>
+                      </div>
+                    </div>
                   </div>
                   <input
                     ref={inputRef}
                     type="text"
-                    placeholder="How can I help you today?"
+                    placeholder={getPlaceholderText()}
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                     className="chat-input-field"
                   />
+                  {isWebSearchMode && selectedTool && (
+                    <div className="web-search-indicator-blue">
+                      <span className="web-search-icon">
+                        {selectedTool === 'web-search' ? '🌐' : 
+                         
+                          selectedTool === "document-search" ? (
+                            <FileText size={15} strokeWidth={2} />
+                          ) : (
+                            <FileText size={15} strokeWidth={2} />
+                          )
+                        }
+                      </span>
+                      <span className="web-search-text">{getToolDisplayName()}</span>
+                      <button 
+                        className="cancel-web-search" 
+                        onClick={handleCancelSearch}
+                        title="Hủy tìm kiếm"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                   <div className="input-controls-right">
                     <select 
                       value={selectedModel} 
                       onChange={(e) => setSelectedModel(e.target.value)}
                       className="model-select"
                     >
-                      <option value="Sonnet 4.5">Sonnet 4.5</option>
-                      <option value="Opus">Opus</option>
-                      <option value="Haiku">Haiku</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                      <option value="gpt-4o-mini">GPT-4o Mini</option>
+                      <option value="gpt-4.1">GPT-4.1</option>
                     </select>
                     <button 
                       className="send-btn" 
@@ -526,14 +656,18 @@ const ChatApp = () => {
                 {messages.map((message) => (
                   <div key={message.id} className={`message ${message.type}`}>
                     <div className="message-avatar">
-                      {message.type === 'user' ? 'U' : (
+                      {message.type === 'user' ? (
+                        <div className="user-avatar">
+                          {(message.user_name || user?.name) ? (message.user_name || user?.name).charAt(0).toUpperCase() : 'U'}
+                        </div>
+                      ) : (
                         <img src="/src/assets/qai_gen.png" alt="QAI" style={{ width: '150%', height: '150%', objectFit: 'contain', borderRadius: '50%' }} />
                       )}
                     </div>
                     <div className="message-content">
                       <div className="message-header">
                         <span className="message-role">
-                          {message.type === 'user' ? 'You' : (message.agent_name || 'VNASelf')}
+                          {message.type === 'user' ? (message.user_name || user?.name || 'You') : (message.agent_name || 'VNASelf')}
                         </span>
                         <span className="message-time">
                           {new Date(message.timestamp).toLocaleTimeString()}
@@ -576,19 +710,55 @@ const ChatApp = () => {
               <div className="chat-input-container">
                 <div className="chat-input">
                   <div className="input-controls-left">
-                    <button className="input-btn">+</button>
+                    <button 
+                      className="input-btn" 
+                      onClick={() => setShowSearchOptions(!showSearchOptions)}
+                      title="Tùy chọn tìm kiếm"
+                    >
+                      +
+                    </button>
+                    <div className={`search-options ${showSearchOptions ? 'show' : ''}`}>
+                      <div className="search-option" onClick={() => handleToolSelect('web-search')}>
+                        <span>🌐</span>
+                        <span>Web Search</span>
+                      </div>
+                      <div className="search-option" onClick={() => handleToolSelect('document-search')}>
+                        <FileText size= {15} strokeWidth={2}/>
+                        <span>Document Search</span>
+                      </div>
+                    </div>
                   </div>
                   <input
                     ref={inputRef}
                     type="text"
-                    placeholder="Type your message..."
+                    placeholder={isWebSearchMode ? "Nhập từ khóa tìm kiếm web..." : "Type your message..."}
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                     className="chat-input-field"
                     disabled={isLoading}
                   />
-                   <div className="input-controls-right">
+                  {isWebSearchMode && selectedTool && (
+                    <div className="web-search-indicator-blue">
+                      <span className="web-search-icon">
+                        {selectedTool === 'web-search' ? '🌐' : 
+                                                   selectedTool === "document-search" ? (
+                            <FileText size={15} strokeWidth={2} />
+                          ) : (
+                            <FileText size={15} strokeWidth={2} />
+                          )}
+                      </span>
+                      <span className="web-search-text">{getToolDisplayName()}</span>
+                      <button 
+                        className="cancel-web-search" 
+                        onClick={handleCancelSearch}
+                        title="Hủy tìm kiếm"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  <div className="input-controls-right">
                      <button 
                        className="send-btn" 
                        onClick={handleSendMessage}

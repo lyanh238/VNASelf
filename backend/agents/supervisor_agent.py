@@ -8,23 +8,26 @@ from langchain_core.tools import tool
 from .base_agent import BaseAgent
 from .calendar_agent import CalendarAgent
 from .finance_agent import FinanceAgent
+from .search_agent import SearchAgent
 
 
 class SupervisorAgent(BaseAgent):
     """Supervisor agent that routes requests to appropriate specialized agents."""
     
-    def __init__(self, model: ChatOpenAI, calendar_agent: CalendarAgent, finance_agent: FinanceAgent):
+    def __init__(self, model: ChatOpenAI, calendar_agent: CalendarAgent, finance_agent: FinanceAgent, search_agent: SearchAgent):
         super().__init__(model)
         self.name = "Supervisor Agent"
         self.calendar_agent = calendar_agent
         self.finance_agent = finance_agent
+        self.search_agent = search_agent
         self._all_tools = None
     
     async def initialize(self):
         """Initialize the supervisor with all available tools."""
         await self.calendar_agent.initialize()
         await self.finance_agent.initialize()
-        self._all_tools = self.calendar_agent.get_tools() + self.finance_agent.get_tools()
+        await self.search_agent.initialize()
+        self._all_tools = self.calendar_agent.get_tools() + self.finance_agent.get_tools() + self.search_agent.get_tools()
     
     def get_system_prompt(self) -> str:
         return """Bạn là supervisor thông minh chọn công cụ phù hợp để giải quyết yêu cầu người dùng.
@@ -40,7 +43,11 @@ class SupervisorAgent(BaseAgent):
    - delete_expense: Xóa chi tiêu
    - update_expense: Cập nhật thông tin chi tiêu
 
-# 2. Lịch Google Calendar (các MCP tools):
+# 2. Tìm kiếm Web (Search tools):
+   - tavily_search: Tìm kiếm thông tin trên web (query, max_results=3)
+   - Sử dụng khi người dùng hỏi về thông tin cập nhật, tin tức, hoặc cần tìm kiếm trên internet
+
+# 3. Lịch Google Calendar (các MCP tools):
    - list_upcoming_events: Xem lịch sắp tới
    - get_events_for_date: Xem lịch ngày cụ thể (cần format: YYYY-MM-DD)
    - search_events: Tìm kiếm sự kiện theo từ khóa
