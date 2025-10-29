@@ -1,0 +1,24 @@
+[
+  {
+    "user_id": null,
+    "thread_id": null,
+    "content": "Kiểm tra các thuộc tính của code sau khi refactor",
+    "category": "Other",
+    "request_context": null,
+    "created_at": "2025-10-29T15:35:21.982937+07:00",
+    "updated_at": "2025-10-29T15:35:21.982937+07:00",
+    "timestamp": 1761726921982,
+    "local_id": 1
+  },
+  {
+    "user_id": null,
+    "thread_id": null,
+    "content": "Kiem tra cac thuoc tinh cua code sau khi refactor",
+    "category": "Other",
+    "request_context": null,
+    "created_at": "2025-10-29T15:35:28.578316+07:00",
+    "updated_at": "2025-10-29T15:35:28.578316+07:00",
+    "timestamp": 1761726928578,
+    "local_id": 2
+  }
+]

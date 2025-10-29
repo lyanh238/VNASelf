@@ -9,13 +9,15 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-from agents import CalendarAgent, SupervisorAgent, FinanceAgent, SearchAgent
+from agents import CalendarAgent, SupervisorAgent, FinanceAgent, SearchAgent, NoteAgent
 from services import MCPService
 from services.chat_history_service import LogsService
 from services.conversation_service import ConversationService
 from services.conversation_title_service import ConversationTitleService
 from services.per_conversation_storage_service import PerConversationStorageService
 from services.payment_history_service import PaymentHistoryService
+from services.note_service import NoteService
+from services.note_storage_service import NoteStorageService
 from .state_manager import StateManager
 
 
@@ -31,13 +33,16 @@ class MultiAgentSystem:
         self.conversation_title_service = ConversationTitleService()
         self.per_conversation_storage = PerConversationStorageService()
         self.payment_service = PaymentHistoryService()
+        self.note_db_service = NoteService()
+        self.note_storage_service = NoteStorageService()
         self.state_manager = StateManager()
         
         # Initialize agents
         self.calendar_agent = CalendarAgent(self.model, self.mcp_service)
         self.finance_agent = FinanceAgent(self.model, self.payment_service)
         self.search_agent = SearchAgent(self.model)
-        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent)
+        self.note_agent = NoteAgent(self.model, self.note_db_service, self.note_storage_service)
+        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent, self.note_agent)
         
         self.graph = None
         self._initialized = False
@@ -57,6 +62,8 @@ class MultiAgentSystem:
             self.conversation_title_service.initialize(),
             self.per_conversation_storage.initialize(),
             self.payment_service.initialize(),
+            self.note_db_service.initialize(),
+            self.note_storage_service.initialize(),
             self.mcp_service.initialize(),
             return_exceptions=True  # Don't fail if one service fails
         )
@@ -180,6 +187,10 @@ class MultiAgentSystem:
                     elif any(search_tool in tool_name.lower() for search_tool in ['tavily_search', 'mock_search']):
                         agent_name = "Search Agent"
                         break
+                    # Check for note tools
+                    elif any(note_tool in tool_name.lower() for note_tool in ['record_note', 'list_notes']):
+                        agent_name = "Note Agent"
+                        break
         
         # If no tool calls found, try to determine from response content
         if not tool_calls_found:
@@ -190,6 +201,8 @@ class MultiAgentSystem:
                 agent_name = "Calendar Agent"
             elif any(keyword in response_lower for keyword in ['tìm kiếm web', 'kết quả tìm kiếm', 'nguồn tin', 'tavily']):
                 agent_name = "Search Agent"
+            elif any(keyword in response_lower for keyword in ['ghi chú', 'note', 'recorded note', 'đã lưu ghi chú']):
+                agent_name = "Note Agent"
         
         # Format response with agent information
         formatted_response = f"[{agent_name}] {response}"
@@ -385,4 +398,5 @@ class MultiAgentSystem:
         await self.mcp_service.close()
         await self.logs_service.close()
         await self.payment_service.close()
+        await self.note_db_service.close()
         print(" Multi-Agent System closed.")
