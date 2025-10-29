@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, date
 import json
+from collections import defaultdict
 
 from config import Config
 from models.payment_history import PaymentHistory, Base
@@ -232,6 +233,85 @@ class PaymentHistoryService:
         except Exception as e:
             print(f"Unexpected error calculating total spending: {str(e)}")
             return 0.0
+
+    async def get_daily_timeseries(
+        self,
+        user_id: Optional[str] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ) -> List[Dict[str, Any]]:
+        """Aggregate expenses by day for time-series plotting."""
+        if not self.session:
+            return []
+
+    async def get_daily_timeseries_by_category(
+        self,
+        user_id: Optional[str] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Aggregate expenses by day and category.
+
+        Returns a dict: { category: [ {date, amount}, ... ], ... }
+        """
+        if not self.session:
+            return {}
+        try:
+            query = self.session.query(PaymentHistory)
+            if user_id:
+                query = query.filter(PaymentHistory.user_id == user_id)
+            if start_date:
+                query = query.filter(PaymentHistory.date >= start_date)
+            if end_date:
+                query = query.filter(PaymentHistory.date <= end_date)
+            query = query.filter(PaymentHistory.is_deleted == False)
+
+            rows = query.all()
+            buckets: Dict[str, defaultdict[str, float]] = {}
+            for row in rows:
+                cat = row.category or "Unknown"
+                if cat not in buckets:
+                    buckets[cat] = defaultdict(float)
+                d = row.date.date().isoformat() if isinstance(row.date, datetime) else str(row.date)
+                buckets[cat][d] += float(row.amount or 0)
+
+            result: Dict[str, List[Dict[str, Any]]] = {}
+            for cat, by_date in buckets.items():
+                series = [{"date": k, "amount": v} for k, v in by_date.items()]
+                series.sort(key=lambda x: x["date"])  # ascending by date
+                result[cat] = series
+            return result
+        except SQLAlchemyError as e:
+            print(f"Error building timeseries by category: {str(e)}")
+            return {}
+        except Exception as e:
+            print(f"Unexpected error building timeseries by category: {str(e)}")
+            return {}
+        try:
+            query = self.session.query(PaymentHistory)
+            if user_id:
+                query = query.filter(PaymentHistory.user_id == user_id)
+            if start_date:
+                query = query.filter(PaymentHistory.date >= start_date)
+            if end_date:
+                query = query.filter(PaymentHistory.date <= end_date)
+            query = query.filter(PaymentHistory.is_deleted == False)
+
+            rows = query.all()
+            bucket: defaultdict[str, float] = defaultdict(float)
+            for row in rows:
+                d = row.date.date().isoformat() if isinstance(row.date, datetime) else str(row.date)
+                bucket[d] += float(row.amount or 0)
+
+            series = [{"date": k, "amount": v} for k, v in bucket.items()]
+            series.sort(key=lambda x: x["date"])  # ascending
+            return series
+        except SQLAlchemyError as e:
+            print(f"Error building timeseries: {str(e)}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error building timeseries: {str(e)}")
+            return []
     
     async def delete_expense(self, expense_id: int, user_id: Optional[str] = None) -> bool:
         """Soft delete an expense."""

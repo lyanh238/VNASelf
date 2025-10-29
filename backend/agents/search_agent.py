@@ -131,6 +131,10 @@ class SearchAgent(BaseAgent):
     def get_system_prompt(self) -> str:
         return """Bạn là Search Agent chuyên về tìm kiếm thông tin trên web.
 
+QUY TẮC NGÔN NGỮ:
+- Mặc định trả lời bằng tiếng Việt.
+- Nếu người dùng hỏi bằng ngôn ngữ khác, trả lời bằng chính ngôn ngữ đó.
+
 NHIỆM VỤ:
 - Sử dụng công cụ tavily_search để tìm kiếm thông tin trên internet
 - Tổng hợp và trình bày kết quả tìm kiếm một cách rõ ràng, dễ hiểu

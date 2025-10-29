@@ -8,6 +8,7 @@ import AgentList from './AgentList'
 import AgentChat from './AgentChat'
 import ConversationList from './ConversationList'
 import { MessageCirclePlus } from 'lucide-react';
+import { MessageSquarePlus } from 'lucide-react';
 import { Bot } from 'lucide-react';
 import { FileText } from 'lucide-react';
 
@@ -470,6 +471,33 @@ const ChatApp = () => {
       <div className="main-container">
         {/* Sidebar */}
         <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="tiny-bar"></div>
+          <div className="collapsed-rail">
+            <button 
+              className="rail-btn" 
+              onClick={handleNewChat} 
+              title="New chat" 
+              aria-label="New chat"
+            >
+              <MessageSquarePlus size={20} strokeWidth={2} />
+            </button>
+            <button 
+              className="rail-btn" 
+              onClick={handleBackToMain}
+              title="Chats" 
+              aria-label="Chats"
+            >
+              <MessageCirclePlus size={20} strokeWidth={2} />
+            </button>
+            <button 
+              className="rail-btn" 
+              onClick={handleAgentClick}
+              title="Agent" 
+              aria-label="Agent"
+            >
+              <Bot size={20} strokeWidth={2} />
+            </button>
+          </div>
           <div className="sidebar-header">
             <button 
               className="hamburger-menu"
@@ -483,10 +511,17 @@ const ChatApp = () => {
             <span className="X2D35-text">X2D35</span>
           </div>
 
-          <button className="new-chat-btn" onClick={handleNewChat}>
-            <span style={{ fontSize: '18px' }}>+</span>
-            <span className="new-chat-text">New chat</span>
-          </button>
+          <nav className="navigation">
+            <button 
+              className={`nav-link`}
+              onClick={handleNewChat}
+            > 
+              <span className="nav-icon">
+                <MessageSquarePlus size={20} strokeWidth={2} />
+              </span>
+              New chat
+            </button>
+          </nav>
 
                 <nav className="navigation">
                   <button 

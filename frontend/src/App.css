@@ -150,7 +150,10 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-color);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease, border-color 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
 }
 
 .sidebar.collapsed {
@@ -164,6 +167,82 @@ body {
 .sidebar.collapsed .user-info {
   opacity: 0;
   visibility: hidden;
+}
+
+/* Smooth opacity like Tailwind's transition-opacity duration-500 for sidebar content */
+.sidebar .X2D35-text,
+.sidebar .new-chat-text,
+.sidebar .navigation,
+.sidebar .recents-section,
+.sidebar .user-info {
+  transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+}
+
+.sidebar:not(.collapsed) .X2D35-text,
+.sidebar:not(.collapsed) .new-chat-text,
+.sidebar:not(.collapsed) .navigation,
+.sidebar:not(.collapsed) .recents-section,
+.sidebar:not(.collapsed) .user-info {
+  visibility: visible;
+  transition: opacity 0.15s ease, visibility 0s linear 0s;
+}
+
+/* Tiny bar overlay to emulate ChatGPT rail when collapsed */
+.tiny-bar {
+  position: absolute;
+  inset: 0;
+  width: var(--sidebar-rail-width, 56px);
+  cursor: e-resize;
+  opacity: 0;
+  background: transparent;
+  transition: opacity 150ms steps(1, end);
+  pointer-events: none;
+}
+
+.sidebar.collapsed .tiny-bar {
+  opacity: 1;
+  transition-timing-function: steps(1, start);
+  pointer-events: auto;
+}
+
+/* Collapsed icon rail */
+.collapsed-rail {
+  position: absolute;
+  top: 64px; /* below header */
+  left: 0;
+  width: var(--sidebar-rail-width, 56px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateX(0);
+}
+
+.rail-btn {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.rail-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar.collapsed .collapsed-rail {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar.collapsed .new-chat-btn {
@@ -201,7 +280,47 @@ body {
   padding: 0 16px;
   gap: 12px;
   border-bottom: 1px solid var(--border-color);
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, padding 0.3s ease;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background-color: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+/* Sidebar header when collapsed */
+.sidebar.collapsed .sidebar-header {
+  padding: 0 16px;
+  justify-content: flex-start;
+}
+
+.sidebar.collapsed .hamburger-menu {
+  margin: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+/* Sidebar header when expanded */
+.sidebar:not(.collapsed) .sidebar-header {
+  padding: 0 16px;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.sidebar:not(.collapsed) .hamburger-menu {
+  margin: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
 }
 
 .hamburger-menu {
@@ -248,7 +367,7 @@ body {
   font-size: 14px;
   color: var(--text-primary);
   white-space: nowrap;
-  transition: opacity 0.3s, color 0.3s ease;
+  transition: opacity 0.5s ease, color 0.3s ease;
 }
 
 /* New Chat Button */
@@ -276,7 +395,7 @@ body {
 }
 
 .new-chat-text {
-  transition: opacity 0.3s;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Navigation */
@@ -284,8 +403,8 @@ body {
   padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  transition: opacity 0.3s;
+  gap: 8px;
+  transition: opacity 0.5s ease;
 }
 
 .nav-link {
@@ -304,6 +423,10 @@ body {
   cursor: pointer;
   width: 100%;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .nav-link:hover {
@@ -324,15 +447,13 @@ body {
 .nav-icon {
   font-size: 16px;
   flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Recents Section */
-.recents-section {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 12px;
-  transition: opacity 0.3s;
-}
 
 .recents-section::-webkit-scrollbar {
   width: 6px;
@@ -368,7 +489,8 @@ body {
   letter-spacing: 0.5px;
   font-weight: 600;
   padding: 0 12px;
-  transition: color 0.3s ease;
+  transition: width 0.3s ease;
+
 }
 
 .recent-item {
@@ -448,7 +570,8 @@ body {
 .user-info {
   flex: 1;
   text-align: left;
-  transition: opacity 0.3s;
+  transition: width 0.3s ease;
+
 }
 
 .user-name {
@@ -931,11 +1054,15 @@ body {
     top: 36px;
     height: calc(100vh - 36px);
     z-index: 100;
-    transform: translateX(-100%);
+    transform: translateX(-100%); /* Ẩn sidebar */
   }
   
   .sidebar:not(.collapsed) {
-    transform: translateX(0);
+    transform: translateX(0); /* Hiện sidebar */
+  }
+  
+  .sidebar.collapsed {
+    transform: translateX(-100%); /* Ẩn sidebar khi collapsed */
   }
   
   .main-content {

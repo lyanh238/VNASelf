@@ -19,6 +19,7 @@ from contextlib import asynccontextmanager
 from core import MultiAgentSystem
 from services.conversation_service import ConversationService
 from services.conversation_title_service import ConversationTitleService
+from services.payment_history_service import PaymentHistoryService
 
 # Initialize FastAPI app
 app = FastAPI(title="VNASelf API", version="1.0.0")
@@ -36,6 +37,7 @@ app.add_middleware(
 multi_agent_system = None
 conversation_service = None
 conversation_title_service = None
+payment_history_service: Optional[PaymentHistoryService] = None
 
 # Account file path
 ACCOUNT_FILE_PATH = "account.json"
@@ -52,6 +54,21 @@ class ChatResponse(BaseModel):
     agent_name: str
     thread_id: str
     timestamp: int
+
+class TimeSeriesResponse(BaseModel):
+    labels: List[str]
+    values: List[float]
+    unit: str = "VND"
+
+class ForecastResponse(BaseModel):
+    history: Dict[str, Any]
+    forecast: Dict[str, Any]
+    unit: str = "VND"
+
+class TimeSeriesByCategoryResponse(BaseModel):
+    labels: List[str]
+    series: List[Dict[str, Any]]  # [{category, values}]
+    unit: str = "VND"
 
 class ChatHistory(BaseModel):
     thread_id: str
@@ -161,7 +178,7 @@ conversation_title_service : Optional[ConversationTitleService] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown lifecycle for FastAPI app."""
-    global multi_agent_system, conversation_service, conversation_title_service
+    global multi_agent_system, conversation_service, conversation_title_service, payment_history_service
 
     # --- Startup logic ---
     try:
@@ -176,6 +193,9 @@ async def lifespan(app: FastAPI):
 
         conversation_title_service = ConversationTitleService()
         await conversation_title_service.initialize()
+
+        payment_history_service = PaymentHistoryService()
+        await payment_history_service.initialize()
 
     except Exception as e:
         print(f"[ERROR] Error initializing services: {str(e)}")
@@ -312,6 +332,62 @@ async def get_user_threads(user_id: str):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting user threads: {str(e)}")
+
+# Finance analytics endpoints for charts
+@app.get("/api/finance/timeseries", response_model=TimeSeriesResponse)
+async def get_finance_timeseries(user_id: Optional[str] = None, start_date: Optional[str] = None, end_date: Optional[str] = None):
+    if not payment_history_service:
+        raise HTTPException(status_code=500, detail="Payment history service not initialized")
+    try:
+        from datetime import datetime as dt
+        sd = dt.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+        ed = dt.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+        series = await payment_history_service.get_daily_timeseries(user_id=user_id, start_date=sd, end_date=ed)
+        labels = [p["date"] for p in series]
+        values = [p["amount"] for p in series]
+        return TimeSeriesResponse(labels=labels, values=values)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating timeseries: {str(e)}")
+
+@app.get("/api/finance/forecast", response_model=ForecastResponse)
+async def get_finance_forecast(user_id: Optional[str] = None, days_ahead: int = 14):
+    if not payment_history_service:
+        raise HTTPException(status_code=500, detail="Payment history service not initialized")
+    try:
+        # Reuse agent tool logic via light inline import to avoid duplication
+        from agents.finance_agent import forecast_spending
+        result = forecast_spending.invoke({"user_id": user_id, "days_ahead": days_ahead})
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("error", "Forecast failed"))
+        return ForecastResponse(history=result["history"], forecast=result["forecast"], unit=result.get("unit", "VND"))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating forecast: {str(e)}")
+
+@app.get("/api/finance/timeseries-by-category", response_model=TimeSeriesByCategoryResponse)
+async def get_finance_timeseries_by_category(user_id: Optional[str] = None, start_date: Optional[str] = None, end_date: Optional[str] = None):
+    if not payment_history_service:
+        raise HTTPException(status_code=500, detail="Payment history service not initialized")
+    try:
+        from datetime import datetime as dt
+        sd = dt.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+        ed = dt.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+        cat_map = await payment_history_service.get_daily_timeseries_by_category(user_id=user_id, start_date=sd, end_date=ed)
+        # unify labels
+        label_set = set()
+        for series in cat_map.values():
+            for p in series:
+                label_set.add(p["date"])
+        labels = sorted(label_set)
+        series_list = []
+        for cat, series in cat_map.items():
+            values_map = {p["date"]: p["amount"] for p in series}
+            values = [values_map.get(d, 0) for d in labels]
+            series_list.append({"category": cat, "values": values})
+        return TimeSeriesByCategoryResponse(labels=labels, series=series_list)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating timeseries by category: {str(e)}")
 
 @app.delete("/api/chat/threads/{thread_id}")
 async def delete_thread(thread_id: str):

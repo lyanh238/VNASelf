@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import FinanceChart from './FinanceChart'
 
 const AgentChat = ({ agent, onBack }) => {
   const [messages, setMessages] = useState([])
@@ -42,7 +43,17 @@ const AgentChat = ({ agent, onBack }) => {
         'Add a new expense: Coffee $5',
         'Show my spending this month',
         'What are my biggest expense categories?',
-        'Track my transportation costs'
+        'Show spending trend and forecast'
+      ]
+    },
+    note: {
+      title: 'Note Agent',
+      subtitle: 'Capture and organize your notes with automatic categorization',
+      suggestions: [
+        'Note: Buy milk and eggs on Friday',
+        'Remember to call mom this weekend',
+        'Save this idea: build a habit tracker',
+        'List my recent notes in Work category'
       ]
     }
   }
@@ -142,11 +153,10 @@ const AgentChat = ({ agent, onBack }) => {
 
       if (response.ok) {
         const data = await response.json()
-        
         const assistantMessage = {
           id: Date.now() + 1,
           type: 'assistant',
-          content: data.response || 'No response received',
+          content: data.content || 'No response received',
           timestamp: new Date().toISOString()
         }
 
@@ -355,6 +365,12 @@ const AgentChat = ({ agent, onBack }) => {
             )}
             
             <div ref={messagesEndRef} />
+            {/* Finance interactive charts */}
+            {agent.id === 'finance' && (
+              <div style={{ marginTop: '12px' }}>
+                <FinanceChart userId={user?.id || 'default_user'} />
+              </div>
+            )}
           </div>
 
           {/* Chat Input */}

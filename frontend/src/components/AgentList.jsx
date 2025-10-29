@@ -3,6 +3,7 @@ import './AgentList.css'
 import { Bitcoin } from 'lucide-react';
 import { CalendarDays } from 'lucide-react';
 import { Brain } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 const AgentList = ({ onAgentSelect }) => {
   // Available agents from the backend system
@@ -30,6 +31,14 @@ const AgentList = ({ onAgentSelect }) => {
       icon: <Bitcoin size={24} />,
       capabilities: ['Expense Tracking', 'Budget Analysis', 'Spending Reports'],
       color: '#f59e0b'
+    },
+    {
+      id: 'note',
+      name: 'Note Agent',
+      description: 'Record, classify, and retrieve your notes effortlessly',
+      icon: <FileText size={24} />,
+      capabilities: ['Note Taking', 'Auto Classification', 'Quick Retrieval'],
+      color: '#3b82f6'
     }
   ]
 

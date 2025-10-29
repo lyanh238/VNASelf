@@ -10,6 +10,7 @@ from datetime import datetime
 import json
 from services.payment_history_service import PaymentHistoryService
 import pytz
+import json
 
 TIMEZONE = 'Asia/Ho_Chi_Minh'
 VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
@@ -187,6 +188,128 @@ def get_total_spending(
             "error": f"Lỗi khi tính tổng chi tiêu: {str(e)}"
         }
 
+@tool
+def get_spending_timeseries(
+    user_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """Lấy dữ liệu chuỗi thời gian (daily) tổng chi tiêu để vẽ biểu đồ.
+
+    Returns JSON with fields: labels (dates), values (amounts)
+    """
+    try:
+        start_date_obj = None
+        end_date_obj = None
+        if start_date:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        if end_date:
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+        import asyncio
+        if _payment_service:
+            series = asyncio.run(_payment_service.get_daily_timeseries(
+                user_id=user_id,
+                start_date=start_date_obj,
+                end_date=end_date_obj
+            ))
+            labels = [p["date"] for p in series]
+            values = [p["amount"] for p in series]
+            return {
+                "success": True,
+                "labels": labels,
+                "values": values,
+                "unit": "VND"
+            }
+        return {"success": False, "error": "Payment service not initialized"}
+    except Exception as e:
+        return {"success": False, "error": f"Lỗi khi lấy timeseries: {str(e)}"}
+
+@tool
+def get_spending_timeseries_by_category(
+    user_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """Lấy dữ liệu chuỗi thời gian theo danh mục (mỗi danh mục một line)."""
+    try:
+        start_date_obj = None
+        end_date_obj = None
+        if start_date:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        if end_date:
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+        import asyncio
+        if _payment_service:
+            cat_map = asyncio.run(_payment_service.get_daily_timeseries_by_category(
+                user_id=user_id,
+                start_date=start_date_obj,
+                end_date=end_date_obj
+            ))
+            # unify labels
+            label_set = set()
+            for series in cat_map.values():
+                for p in series:
+                    label_set.add(p["date"])
+            labels = sorted(label_set)
+            series_list = []
+            for cat, series in cat_map.items():
+                values_map = {p["date"]: p["amount"] for p in series}
+                values = [values_map.get(d, 0) for d in labels]
+                series_list.append({"category": cat, "values": values})
+            return {"success": True, "labels": labels, "series": series_list, "unit": "VND"}
+        return {"success": False, "error": "Payment service not initialized"}
+    except Exception as e:
+        return {"success": False, "error": f"Lỗi khi lấy timeseries theo danh mục: {str(e)}"}
+
+@tool
+def forecast_spending(
+    user_id: Optional[str] = None,
+    days_ahead: int = 14
+) -> Dict[str, Any]:
+    """Dự báo chi tiêu trong tương lai bằng Prophet và trả về dữ liệu để vẽ biểu đồ.
+
+    Returns JSON fields: history {labels, values}, forecast {labels, values}
+    """
+    try:
+        import pandas as pd
+        from prophet import Prophet
+        import asyncio
+
+        if not _payment_service:
+            return {"success": False, "error": "Payment service not initialized"}
+
+        series = asyncio.run(_payment_service.get_daily_timeseries(user_id=user_id))
+        if not series:
+            return {"success": False, "error": "Không có dữ liệu đủ để dự báo"}
+
+        df = pd.DataFrame(series)
+        df.rename(columns={"date": "ds", "amount": "y"}, inplace=True)
+        df["ds"] = pd.to_datetime(df["ds"])  # ensure datetime
+
+        m = Prophet(daily_seasonality=True, weekly_seasonality=True)
+        m.fit(df)
+        future = m.make_future_dataframe(periods=days_ahead)
+        forecast = m.predict(future)
+
+        hist = forecast.iloc[: len(df)]
+        fut = forecast.iloc[len(df) : ]
+
+        history_labels = hist["ds"].dt.strftime("%Y-%m-%d").tolist()
+        history_values = hist["yhat"].round(2).tolist()
+        forecast_labels = fut["ds"].dt.strftime("%Y-%m-%d").tolist()
+        forecast_values = fut["yhat"].round(2).tolist()
+
+        return {
+            "success": True,
+            "history": {"labels": history_labels, "values": history_values},
+            "forecast": {"labels": forecast_labels, "values": forecast_values},
+            "unit": "VND"
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Lỗi khi dự báo: {str(e)}"}
+
 
 class FinanceAgent(BaseAgent):
     """Specialized agent for financial operations and spending tracking."""
@@ -206,11 +329,18 @@ class FinanceAgent(BaseAgent):
             self._finance_tools = [
                 add_expense,
                 get_expense_history,
-                get_total_spending
+                get_total_spending,
+                get_spending_timeseries,
+                get_spending_timeseries_by_category,
+                forecast_spending
             ]
     
     def get_system_prompt(self) -> str:
         return """Bạn là trợ lý tài chính thông minh chuyên về quản lý chi tiêu và theo dõi lịch sử thanh toán.
+
+QUY TẮC NGÔN NGỮ:
+- Mặc định trả lời bằng tiếng Việt.
+- Nếu người dùng dùng ngôn ngữ khác, hãy trả lời bằng chính ngôn ngữ đó trong lượt trao đổi.
 
 Bạn có thể:
 - Thêm chi tiêu mới với thông tin đầy đủ

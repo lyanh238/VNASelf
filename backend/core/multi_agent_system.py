@@ -41,7 +41,7 @@ class MultiAgentSystem:
         self.calendar_agent = CalendarAgent(self.model, self.mcp_service)
         self.finance_agent = FinanceAgent(self.model, self.payment_service)
         self.search_agent = SearchAgent(self.model)
-        self.note_agent = NoteAgent(self.model, self.note_db_service, self.note_storage_service)
+        self.note_agent = NoteAgent(self.model, self.note_db_service)
         self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent, self.note_agent)
         
         self.graph = None

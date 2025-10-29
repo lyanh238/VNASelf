@@ -185,9 +185,6 @@ const ConversationList = ({ onConversationSelect, currentThreadId, onNewChat, re
   if (loading) {
     return (
       <div className="conversation-list">
-        <div className="conversation-list-header">
-          <h3>Recent Conversations</h3>
-        </div>
         <div className="conversation-loading">
           <div className="loading-spinner"></div>
           <span>Loading conversations...</span>
@@ -200,10 +197,6 @@ const ConversationList = ({ onConversationSelect, currentThreadId, onNewChat, re
 
   return (
     <div className="conversation-list">
-      <div className="conversation-list-header">
-        <h3>Recent Conversations</h3>
-      </div>
-      
       {conversations.length === 0 ? (
         <div className="no-conversations">
           <MessageCircle size={48} />

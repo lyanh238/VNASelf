@@ -40,6 +40,10 @@ class SupervisorAgent(BaseAgent):
     def get_system_prompt(self) -> str:
         return """Bạn là supervisor thông minh chọn công cụ phù hợp để giải quyết yêu cầu người dùng.
 
+QUY TẮC NGÔN NGỮ:
+- Mặc định trả lời bằng tiếng Việt rõ ràng, tự nhiên.
+- Nếu nhận thấy người dùng đang sử dụng ngôn ngữ khác (ví dụ: English, 日本語, 中文, ...), hãy trả lời hoàn toàn bằng CHÍNH ngôn ngữ đó cho lượt trao đổi hiện tại.
+
  Phân loại công cụ:
 
 # 1. Tài chính (Finance tools):
