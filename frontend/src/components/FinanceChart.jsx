@@ -31,6 +31,20 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
   const [error, setError] = useState(null)
   const [activeChart, setActiveChart] = useState('spending')
 
+  // Resolve theme-aware colors from CSS variables
+  const getThemeColors = () => {
+    const root = document.documentElement
+    const styles = getComputedStyle(root)
+    return {
+      textPrimary: styles.getPropertyValue('--text-primary').trim() || '#ffffff',
+      textSecondary: styles.getPropertyValue('--text-secondary').trim() || '#b3b3b3',
+      borderColor: styles.getPropertyValue('--border-color').trim() || '#2a2a2a',
+      // Tooltip uses a high-contrast dark background for both themes
+      tooltipBg: 'rgba(0, 0, 0, 0.85)',
+      tooltipBorder: styles.getPropertyValue('--border-color').trim() || '#2a2a2a',
+    }
+  }
+
   const loadSpendingChart = async () => {
     setLoading(true)
     setError(null)
@@ -86,6 +100,7 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
 
   const renderChart = () => {
     if (activeChart === 'spending' && spendingChart) {
+      const theme = getThemeColors()
       const sanitizeOptions = (opts) => {
         const safe = opts ? { ...opts } : {}
         safe.plugins = safe.plugins ? { ...safe.plugins } : {}
@@ -115,11 +130,18 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
                 ...normalizedOptions.plugins,
                 tooltip: {
                   ...normalizedOptions.plugins.tooltip,
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: 'white',
-                  bodyColor: 'white',
-                  borderColor: 'var(--border-color)',
+                  backgroundColor: theme.tooltipBg,
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  borderColor: theme.tooltipBorder,
                   borderWidth: 1
+                },
+                legend: {
+                  ...(normalizedOptions.plugins?.legend || {}),
+                  labels: {
+                    ...((normalizedOptions.plugins?.legend && normalizedOptions.plugins.legend.labels) || {}),
+                    color: theme.textSecondary
+                  }
                 }
               },
               scales: {
@@ -127,19 +149,19 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
                 x: {
                   ...(normalizedOptions.scales?.x || {}),
                   grid: {
-                    color: 'var(--border-color)'
+                    color: theme.borderColor
                   },
                   ticks: {
-                    color: 'var(--text-secondary)'
+                    color: theme.textSecondary
                   }
                 },
                 y: {
                   ...(normalizedOptions.scales?.y || {}),
                   grid: {
-                    color: 'var(--border-color)'
+                    color: theme.borderColor
                   },
                   ticks: {
-                    color: 'var(--text-secondary)'
+                    color: theme.textSecondary
                   }
                 }
               }
@@ -150,6 +172,7 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
     }
     
     if (activeChart === 'forecast' && forecastChart) {
+      const theme = getThemeColors()
       const sanitizeOptions = (opts) => {
         const safe = opts ? { ...opts } : {}
         safe.plugins = safe.plugins ? { ...safe.plugins } : {}
@@ -179,11 +202,18 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
                 ...normalizedOptions.plugins,
                 tooltip: {
                   ...normalizedOptions.plugins.tooltip,
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: 'white',
-                  bodyColor: 'white',
-                  borderColor: 'var(--border-color)',
+                  backgroundColor: theme.tooltipBg,
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  borderColor: theme.tooltipBorder,
                   borderWidth: 1
+                },
+                legend: {
+                  ...(normalizedOptions.plugins?.legend || {}),
+                  labels: {
+                    ...((normalizedOptions.plugins?.legend && normalizedOptions.plugins.legend.labels) || {}),
+                    color: theme.textSecondary
+                  }
                 }
               },
               scales: {
@@ -191,19 +221,19 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
                 x: {
                   ...(normalizedOptions.scales?.x || {}),
                   grid: {
-                    color: 'var(--border-color)'
+                    color: theme.borderColor
                   },
                   ticks: {
-                    color: 'var(--text-secondary)'
+                    color: theme.textSecondary
                   }
                 },
                 y: {
                   ...(normalizedOptions.scales?.y || {}),
                   grid: {
-                    color: 'var(--border-color)'
+                    color: theme.borderColor
                   },
                   ticks: {
-                    color: 'var(--text-secondary)'
+                    color: theme.textSecondary
                   }
                 }
               }

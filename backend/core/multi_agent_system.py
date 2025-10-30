@@ -111,7 +111,7 @@ class MultiAgentSystem:
         self.graph = builder.compile(checkpointer=self.state_manager.get_memory())
         print(" Agent graph built successfully!")
     
-    async def process_message(self, message: str, thread_id: Optional[str] = None, user_id: Optional[str] = None, model_name: Optional[str] = None) -> str:
+    async def process_message(self, message: str, thread_id: Optional[str] = None, user_id: Optional[str] = None, model_name: Optional[str] = None, locale: Optional[str] = None) -> str:
         """Process a message through the multi-agent system."""
         if not self._initialized:
             await self.initialize()
@@ -154,9 +154,27 @@ class MultiAgentSystem:
             timestamp=current_timestamp
         )
         
+        # Language instruction based on locale
+        language_instruction = None
+        if locale:
+            lang = (locale or "").lower()
+            if lang.startswith("vi"):
+                language_instruction = "Hãy trả lời bằng tiếng Việt."
+            elif lang.startswith("ja"):
+                language_instruction = "日本語で回答してください。"
+            elif lang.startswith("ko"):
+                language_instruction = "한국어로 답변해 주세요."
+            elif lang.startswith("zh"):
+                language_instruction = "请用中文回答。"
+            elif lang.startswith("en"):
+                language_instruction = "Please answer in English."
+            # fallback: no extra instruction
+
+        user_content = f"{language_instruction}\n\n{message}" if language_instruction else message
+
         # Process the message
         result = await self.graph.ainvoke(
-            {"messages": [HumanMessage(content=message)]},
+            {"messages": [HumanMessage(content=user_content)]},
             config=config
         )
         

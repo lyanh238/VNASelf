@@ -257,7 +257,8 @@ const ChatApp = () => {
           content: content.trim(),
           thread_id: currentThreadId,
           user_id: user?.id || user?.email || 'default_user',
-          model_name: selectedModel
+          model_name: selectedModel,
+          locale: (navigator?.language || navigator?.userLanguage || 'vi-VN')
         })
       })
 

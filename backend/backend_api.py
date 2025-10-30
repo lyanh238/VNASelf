@@ -48,6 +48,7 @@ class ChatMessage(BaseModel):
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
     model_name: Optional[str] = "gpt-4o"
+    locale: Optional[str] = None
 
 class ChatResponse(BaseModel):
     content: str
@@ -234,7 +235,8 @@ async def chat_endpoint(message: ChatMessage):
             message.content,
             thread_id=thread_id,
             user_id=user_id,
-            model_name=message.model_name
+            model_name=message.model_name,
+            locale=message.locale
         )
         
         # Extract agent name from response

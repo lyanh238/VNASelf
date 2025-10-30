@@ -200,7 +200,7 @@ const AgentChat = ({ agent, onBack }) => {
       {/* Back Button */}
       <div style={{ 
         position: 'absolute', 
-        top: '20px', 
+        top: '72px', 
         left: '20px', 
         zIndex: 10 
       }}>
@@ -239,7 +239,7 @@ const AgentChat = ({ agent, onBack }) => {
 
       {showWelcome && messages.length === 0 ? (
         <>
-          <div className="welcome-section" style={{ paddingTop: '60px' }}>
+          <div className="welcome-section" style={{ paddingTop: '72px' }}>
             <div className="X2D35-icon-large">
               <div style={{ fontSize: '48px', color: agent.color }}>
                 {agent.icon}
@@ -295,7 +295,7 @@ const AgentChat = ({ agent, onBack }) => {
       ) : (
         <>
           {/* Chat Messages */}
-          <div className="chat-messages" style={{ paddingTop: '60px' }}>
+          <div className="chat-messages" style={{ paddingTop: '72px' }}>
             {messages.map((message) => (
               <div key={message.id} className={`message ${message.type}`}>
                 <div className="message-avatar">
