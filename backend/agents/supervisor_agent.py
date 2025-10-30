@@ -48,6 +48,7 @@ QUY TẮC NGÔN NGỮ:
 
 # 1. Tài chính (Finance tools):
    - add_expense: Thêm chi tiêu mới (summary, amount, category, date)
+   - add_multiple_expenses: Thêm nhiều chi tiêu cùng lúc (expenses_text, date)
    - get_expense_history: Xem lịch sử chi tiêu
    - get_expenses_by_category: Lọc chi tiêu theo danh mục (Food, Transportation, Miscellaneous)
    - get_expenses_by_date_range: Xem chi tiêu trong khoảng thời gian
