@@ -43,8 +43,10 @@ class PaymentHistoryService:
                     print("[OK] Payment History Service connected to existing payment_history table")
             else:
                 print("WARNING: NEON_DATABASE_URL not set - payment history will not be saved")
+                print("To enable payment history, set NEON_DATABASE_URL environment variable")
+                print("Example: export NEON_DATABASE_URL='postgresql://username:password@host/database'")
             
-            if not self.session:
+            if not self.session and self.engine:
                 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
                 self.session = SessionLocal()
             
@@ -52,6 +54,7 @@ class PaymentHistoryService:
             
         except Exception as e:
             print(f"[ERROR] Error initializing payment history service: {str(e)}")
+            print("Payment history functionality will be disabled")
             # Don't raise error, just disable payment history
             self._initialized = True
     
@@ -101,6 +104,90 @@ class PaymentHistoryService:
         except Exception as e:
             print(f"Unexpected error adding expense: {str(e)}")
             return None
+    
+    async def add_multiple_expenses(
+        self,
+        expenses: List[Dict[str, Any]],
+        user_id: Optional[str] = "X2D35"
+    ) -> List[PaymentHistory]:
+        """Add multiple expenses to payment history sequentially.
+        
+        Args:
+            expenses: List of expense dictionaries, each containing:
+                     {"summary": str, "amount": float, "category": str, "date": datetime}
+            user_id: User ID (optional)
+        
+        Returns:
+            List of successfully added PaymentHistory objects
+        """
+        user_id = "X2D35"
+        if not self.session:
+            return []
+        
+        valid_categories = ["Food", "Transportation", "Miscellaneous"]
+        added_expenses = []
+        
+        try:
+            for i, expense_data in enumerate(expenses):
+                try:
+                    # Validate required fields
+                    if not all(key in expense_data for key in ["summary", "amount", "category", "date"]):
+                        print(f"Expense {i+1}: Missing required fields")
+                        continue
+                    
+                    # Validate category
+                    if expense_data["category"] not in valid_categories:
+                        print(f"Expense {i+1}: Invalid category")
+                        continue
+                    
+                    # Validate and process date
+                    expense_date = expense_data["date"]
+                    if isinstance(expense_date, str):
+                        expense_date = datetime.strptime(expense_date, "%Y-%m-%d")
+                    
+                    # Validate amount
+                    try:
+                        amount_vnd = float(expense_data["amount"])
+                        if amount_vnd <= 0:
+                            print(f"Expense {i+1}: Amount must be greater than 0")
+                            continue
+                    except (ValueError, TypeError):
+                        print(f"Expense {i+1}: Invalid amount")
+                        continue
+                    
+                    # Create and add expense
+                    expense = PaymentHistory(
+                        user_id=user_id,
+                        summary=expense_data["summary"],
+                        amount=amount_vnd,
+                        category=expense_data["category"],
+                        date=expense_date
+                    )
+                    
+                    self.session.add(expense)
+                    self.session.flush()  # Flush to get ID but don't commit yet
+                    
+                    # Commit each expense individually to ensure data persistence
+                    self.session.commit()
+                    self.session.refresh(expense)
+                    
+                    added_expenses.append(expense)
+                    
+                except SQLAlchemyError as e:
+                    self.session.rollback()
+                    print(f"Error adding expense {i+1}: {str(e)}")
+                    continue
+                except Exception as e:
+                    self.session.rollback()
+                    print(f"Unexpected error adding expense {i+1}: {str(e)}")
+                    continue
+            
+            return added_expenses
+            
+        except Exception as e:
+            self.session.rollback()
+            print(f"Error in batch expense processing: {str(e)}")
+            return added_expenses
     
     async def get_expense_history(
         self, 
@@ -243,6 +330,32 @@ class PaymentHistoryService:
         """Aggregate expenses by day for time-series plotting."""
         if not self.session:
             return []
+        
+        try:
+            query = self.session.query(PaymentHistory)
+            if user_id:
+                query = query.filter(PaymentHistory.user_id == user_id)
+            if start_date:
+                query = query.filter(PaymentHistory.date >= start_date)
+            if end_date:
+                query = query.filter(PaymentHistory.date <= end_date)
+            query = query.filter(PaymentHistory.is_deleted == False)
+
+            rows = query.all()
+            bucket: defaultdict[str, float] = defaultdict(float)
+            for row in rows:
+                d = row.date.date().isoformat() if isinstance(row.date, datetime) else str(row.date)
+                bucket[d] += float(row.amount or 0)
+
+            series = [{"date": k, "amount": v} for k, v in bucket.items()]
+            series.sort(key=lambda x: x["date"])  # ascending
+            return series
+        except SQLAlchemyError as e:
+            print(f"Error building timeseries: {str(e)}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error building timeseries: {str(e)}")
+            return []
 
     async def get_daily_timeseries_by_category(
         self,
@@ -287,31 +400,6 @@ class PaymentHistoryService:
         except Exception as e:
             print(f"Unexpected error building timeseries by category: {str(e)}")
             return {}
-        try:
-            query = self.session.query(PaymentHistory)
-            if user_id:
-                query = query.filter(PaymentHistory.user_id == user_id)
-            if start_date:
-                query = query.filter(PaymentHistory.date >= start_date)
-            if end_date:
-                query = query.filter(PaymentHistory.date <= end_date)
-            query = query.filter(PaymentHistory.is_deleted == False)
-
-            rows = query.all()
-            bucket: defaultdict[str, float] = defaultdict(float)
-            for row in rows:
-                d = row.date.date().isoformat() if isinstance(row.date, datetime) else str(row.date)
-                bucket[d] += float(row.amount or 0)
-
-            series = [{"date": k, "amount": v} for k, v in bucket.items()]
-            series.sort(key=lambda x: x["date"])  # ascending
-            return series
-        except SQLAlchemyError as e:
-            print(f"Error building timeseries: {str(e)}")
-            return []
-        except Exception as e:
-            print(f"Unexpected error building timeseries: {str(e)}")
-            return []
     
     async def delete_expense(self, expense_id: int, user_id: Optional[str] = None) -> bool:
         """Soft delete an expense."""

@@ -21,6 +21,22 @@ now = get_now_vietnam().isoformat()
 # Global payment service for tool access
 _payment_service = None
 
+def _run_async_in_tool(coro):
+    """Helper function to run async code in tool functions."""
+    import asyncio
+    import concurrent.futures
+    
+    try:
+        # Check if we're already in an event loop
+        loop = asyncio.get_running_loop()
+        # We're in an event loop, so we need to use a different approach
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(lambda: asyncio.run(coro))
+            return future.result()
+    except RuntimeError:
+        # No event loop running, safe to use asyncio.run
+        return asyncio.run(coro)
+
 # Standalone tool functions
 @tool
 def add_expense(
@@ -95,6 +111,97 @@ def add_expense(
         return {
             "success": False,
             "error": f"Lỗi khi thêm chi tiêu: {str(e)}"
+        }
+
+@tool
+def add_multiple_expenses(
+    expenses: List[Dict[str, Any]], 
+    user_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Thêm nhiều chi tiêu cùng một lúc vào lịch sử thanh toán.
+    
+    Args:
+        expenses: Danh sách các chi tiêu, mỗi chi tiêu có format:
+                 [{"summary": "Mô tả", "amount": 50000, "category": "Food", "date": "2024-01-15"}, ...]
+        user_id: ID người dùng (optional)
+    
+    Returns:
+        Dict chứa kết quả thêm chi tiêu
+    """
+    try:
+        if not expenses or not isinstance(expenses, list):
+            return {
+                "success": False,
+                "error": "Danh sách chi tiêu không hợp lệ"
+            }
+        
+        # Check if payment service is available
+        if not _payment_service or not _payment_service.session:
+            return {
+                "success": False,
+                "error": "Payment service không được khởi tạo. Vui long kiem tra cau hinh database."
+            }
+        
+        # Use the optimized batch processing method from payment service
+        try:
+            # Prepare expenses data - the payment service will handle validation
+            expense_data_list = []
+            
+            for expense in expenses:
+                # Basic structure validation
+                if not isinstance(expense, dict):
+                    continue
+                
+                # Convert date string to datetime if needed
+                expense_copy = expense.copy()
+                if "date" in expense_copy and isinstance(expense_copy["date"], str):
+                    try:
+                        expense_copy["date"] = datetime.strptime(expense_copy["date"], "%Y-%m-%d")
+                    except ValueError:
+                        # Skip invalid date format
+                        continue
+                
+                expense_data_list.append(expense_copy)
+            
+            # Call the payment service batch method
+            added_expenses_objects = _run_async_in_tool(
+                _payment_service.add_multiple_expenses(
+                    expenses=expense_data_list,
+                    user_id=user_id
+                )
+            )
+            
+            # Convert to dict format
+            added_expenses = [exp.to_dict() for exp in added_expenses_objects]
+            
+            # Return results
+            if added_expenses:
+                return {
+                    "success": True,
+                    "message": f"Da them thanh cong {len(added_expenses)}/{len(expenses)} chi tieu",
+                    "added_expenses": added_expenses,
+                    "total_added": len(added_expenses),
+                    "total_requested": len(expenses),
+                    "errors": None
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Khong the them chi tieu nao vao database",
+                    "total_added": 0,
+                    "total_requested": len(expenses)
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Loi khi luu chi tieu vao database: {str(e)}"
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Loi khi xu ly danh sach chi tieu: {str(e)}"
         }
 
 @tool
@@ -328,6 +435,7 @@ class FinanceAgent(BaseAgent):
         if self._finance_tools is None:
             self._finance_tools = [
                 add_expense,
+                add_multiple_expenses,
                 get_expense_history,
                 get_total_spending,
                 get_spending_timeseries,
@@ -344,6 +452,7 @@ QUY TẮC NGÔN NGỮ:
 
 Bạn có thể:
 - Thêm chi tiêu mới với thông tin đầy đủ
+- Thêm nhiều chi tiêu cùng một lúc (batch processing)
 - Xem lịch sử chi tiêu theo thời gian
 - Lọc chi tiêu theo danh mục (Food, Transportation, Miscellaneous)
 - Tính tổng chi tiêu trong khoảng thời gian
@@ -362,6 +471,8 @@ Lưu ý quan trọng:
 - Phân loại chi tiêu chính xác theo 3 danh mục
 - Cung cấp thông tin chi tiết và hữu ích cho người dùng
 - Luôn lưu dữ liệu vào cơ sở dữ liệu Payment History
+- Khi người dùng cung cấp nhiều chi tiêu cùng lúc, sử dụng add_multiple_expenses
+- Format cho nhiều chi tiêu: [{"summary": "...", "amount": 50000, "category": "Food", "date": "2024-01-15"}, ...]
 """
     
     def get_tools(self) -> List[Any]:
@@ -369,4 +480,3 @@ Lưu ý quan trọng:
         if self._finance_tools is None:
             raise RuntimeError("Finance agent not initialized. Call initialize() first.")
         return self._finance_tools
-

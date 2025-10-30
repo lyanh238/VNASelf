@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Profile Visibility</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>User Profile Visibility Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Cases</h2>
+        <div class="status info">
+            <strong>Test 1:</strong> Check if user profile is visible in expanded sidebar
+        </div>
+        <div class="status info">
+            <strong>Test 2:</strong> Check if user profile is visible in collapsed sidebar
+        </div>
+        <div class="status info">
+            <strong>Test 3:</strong> Check if user profile stays at bottom of sidebar
+        </div>
+        <div class="status info">
+            <strong>Test 4:</strong> Check if user profile is clickable
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <ul>
+            <li>User profile should always be visible at the bottom of sidebar</li>
+            <li>User profile should show user avatar and name when expanded</li>
+            <li>User profile should show only avatar when collapsed</li>
+            <li>User profile should be clickable and show dropdown</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Steps to Test</h2>
+        <ol>
+            <li>Open the application</li>
+            <li>Check if user profile is visible at bottom of sidebar</li>
+            <li>Click on user profile - should show user info</li>
+            <li>Collapse the sidebar</li>
+            <li>Check if user profile is still visible (should show only avatar)</li>
+            <li>Expand the sidebar again</li>
+            <li>Check if user profile is still visible with full info</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Known Issues Fixed</h2>
+        <div class="status success">
+            <strong>Fixed:</strong> Added flex-shrink: 0 to prevent user profile from shrinking
+        </div>
+        <div class="status success">
+            <strong>Fixed:</strong> Added position: sticky and bottom: 0 to keep user profile at bottom
+        </div>
+        <div class="status success">
+            <strong>Fixed:</strong> Added min-height and max-height to ensure consistent sizing
+        </div>
+        <div class="status success">
+            <strong>Fixed:</strong> Added collapsed state styling for user profile
+        </div>
+    </div>
+</body>
+</html>

@@ -169,6 +169,23 @@ body {
   visibility: hidden;
 }
 
+.sidebar.collapsed .user-profile {
+  padding: 8px;
+  min-height: 48px;
+  max-height: 48px;
+}
+
+.sidebar.collapsed .user-profile-btn {
+  justify-content: center;
+  padding: 8px;
+}
+
+.sidebar.collapsed .user-avatar {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+}
+
 /* Smooth opacity like Tailwind's transition-opacity duration-500 for sidebar content */
 .sidebar .X2D35-text,
 .sidebar .new-chat-text,
@@ -533,6 +550,15 @@ body {
   padding: 12px;
   border-top: 1px solid var(--border-color);
   transition: border-color 0.3s ease;
+  flex-shrink: 0; /* Prevent shrinking */
+  background-color: var(--bg-secondary); /* Ensure background */
+  z-index: 25; /* Higher than header to ensure visibility */
+  position: sticky;
+  bottom: 0;
+  min-height: 60px;
+  max-height: 60px;
+  overflow: hidden;
+  width: 100%;
 }
 
 .user-profile-btn {
