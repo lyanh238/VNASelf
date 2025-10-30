@@ -243,6 +243,32 @@ class PaymentHistoryService:
         """Aggregate expenses by day for time-series plotting."""
         if not self.session:
             return []
+        
+        try:
+            query = self.session.query(PaymentHistory)
+            if user_id:
+                query = query.filter(PaymentHistory.user_id == user_id)
+            if start_date:
+                query = query.filter(PaymentHistory.date >= start_date)
+            if end_date:
+                query = query.filter(PaymentHistory.date <= end_date)
+            query = query.filter(PaymentHistory.is_deleted == False)
+
+            rows = query.all()
+            bucket: defaultdict[str, float] = defaultdict(float)
+            for row in rows:
+                d = row.date.date().isoformat() if isinstance(row.date, datetime) else str(row.date)
+                bucket[d] += float(row.amount or 0)
+
+            series = [{"date": k, "amount": v} for k, v in bucket.items()]
+            series.sort(key=lambda x: x["date"])  # ascending
+            return series
+        except SQLAlchemyError as e:
+            print(f"Error building timeseries: {str(e)}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error building timeseries: {str(e)}")
+            return []
 
     async def get_daily_timeseries_by_category(
         self,
@@ -287,31 +313,6 @@ class PaymentHistoryService:
         except Exception as e:
             print(f"Unexpected error building timeseries by category: {str(e)}")
             return {}
-        try:
-            query = self.session.query(PaymentHistory)
-            if user_id:
-                query = query.filter(PaymentHistory.user_id == user_id)
-            if start_date:
-                query = query.filter(PaymentHistory.date >= start_date)
-            if end_date:
-                query = query.filter(PaymentHistory.date <= end_date)
-            query = query.filter(PaymentHistory.is_deleted == False)
-
-            rows = query.all()
-            bucket: defaultdict[str, float] = defaultdict(float)
-            for row in rows:
-                d = row.date.date().isoformat() if isinstance(row.date, datetime) else str(row.date)
-                bucket[d] += float(row.amount or 0)
-
-            series = [{"date": k, "amount": v} for k, v in bucket.items()]
-            series.sort(key=lambda x: x["date"])  # ascending
-            return series
-        except SQLAlchemyError as e:
-            print(f"Error building timeseries: {str(e)}")
-            return []
-        except Exception as e:
-            print(f"Unexpected error building timeseries: {str(e)}")
-            return []
     
     async def delete_expense(self, expense_id: int, user_id: Optional[str] = None) -> bool:
         """Soft delete an expense."""

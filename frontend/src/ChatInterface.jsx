@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './ChatInterface.css'
+import FinanceChart from './components/FinanceChart'
 
 const ChatInterface = ({ 
   threadId, 
@@ -206,6 +207,17 @@ const ChatInterface = ({
       .replace(/\n/g, '<br>')
   }
 
+  const shouldShowChart = (content) => {
+    const chartKeywords = [
+      'biểu đồ', 'chart', 'vẽ biểu đồ', 'hiển thị biểu đồ',
+      'dự báo', 'forecast', 'prophet', 'xu hướng chi tiêu',
+      'chi tiêu theo thời gian', 'spending trend'
+    ]
+    return chartKeywords.some(keyword => 
+      content.toLowerCase().includes(keyword.toLowerCase())
+    )
+  }
+
   return (
     <div className="chat-interface">
       <div className="chat-header">
@@ -243,6 +255,11 @@ const ChatInterface = ({
                   __html: formatMessage(message.content) 
                 }}
               />
+              {message.agent_name === 'Finance Agent' && shouldShowChart(message.content) && (
+                <div style={{ marginTop: '16px' }}>
+                  <FinanceChart userId="X2D35" />
+                </div>
+              )}
             </div>
           </div>
         ))}

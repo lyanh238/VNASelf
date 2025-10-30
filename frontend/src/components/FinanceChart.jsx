@@ -1,131 +1,307 @@
 import React, { useEffect, useState } from 'react'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js'
+import { Line } from 'react-chartjs-2'
 
-const LineChart = ({ labels = [], values = [], color = '#f59e0b', height = 200 }) => {
-  if (!labels.length || !values.length) return null
-  const max = Math.max(...values)
-  const min = Math.min(...values)
-  const pad = (max - min) * 0.1 || 1
-  const yMax = max + pad
-  const yMin = Math.max(0, min - pad)
-  const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100
-    const y = 100 - ((v - yMin) / (yMax - yMin)) * 100
-    return `${x},${y}`
-  }).join(' ')
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
-  return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height }}>
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        points={points}
-      />
-    </svg>
-  )
-}
-
-const FinanceChart = ({ userId }) => {
-  const [timeseries, setTimeseries] = useState({ labels: [], values: [] })
-  const [byCategory, setByCategory] = useState({ labels: [], series: [] })
-  const [forecast, setForecast] = useState(null)
+const FinanceChart = ({ userId, startDate, endDate }) => {
+  const [spendingChart, setSpendingChart] = useState(null)
+  const [forecastChart, setForecastChart] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [activeChart, setActiveChart] = useState('spending')
 
-  const loadTimeseries = async () => {
+  // Resolve theme-aware colors from CSS variables
+  const getThemeColors = () => {
+    const root = document.documentElement
+    const styles = getComputedStyle(root)
+    return {
+      textPrimary: styles.getPropertyValue('--text-primary').trim() || '#ffffff',
+      textSecondary: styles.getPropertyValue('--text-secondary').trim() || '#b3b3b3',
+      borderColor: styles.getPropertyValue('--border-color').trim() || '#2a2a2a',
+      // Tooltip uses a high-contrast dark background for both themes
+      tooltipBg: 'rgba(0, 0, 0, 0.85)',
+      tooltipBorder: styles.getPropertyValue('--border-color').trim() || '#2a2a2a',
+    }
+  }
+
+  const loadSpendingChart = async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/finance/timeseries?user_id=${encodeURIComponent(userId || '')}`)
+      const params = new URLSearchParams()
+      if (userId) params.append('user_id', userId)
+      if (startDate) params.append('start_date', startDate)
+      if (endDate) params.append('end_date', endDate)
+      
+      const res = await fetch(`/api/finance/chart/spending?${params.toString()}`)
       const data = await res.json()
-      setTimeseries({ labels: data.labels || [], values: data.values || [] })
+      
+      if (data.success) {
+        setSpendingChart(data)
+        setActiveChart('spending')
+      } else {
+        setError(data.error || 'Failed to load spending chart')
+      }
     } catch (e) {
-      setError('Failed to load timeseries')
+      setError('Failed to load spending chart')
     } finally {
       setLoading(false)
     }
   }
 
-  const loadForecast = async () => {
+  const loadForecastChart = async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/finance/forecast?user_id=${encodeURIComponent(userId || '')}&days_ahead=14`)
+      const params = new URLSearchParams()
+      if (userId) params.append('user_id', userId)
+      params.append('days_ahead', '7')
+      
+      const res = await fetch(`/api/finance/chart/forecast?${params.toString()}`)
       const data = await res.json()
-      setForecast(data)
+      
+      if (data.success) {
+        setForecastChart(data)
+        setActiveChart('forecast')
+      } else {
+        setError(data.error || 'Failed to load forecast chart')
+      }
     } catch (e) {
-      setError('Failed to load forecast')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadTimeseriesByCategory = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/finance/timeseries-by-category?user_id=${encodeURIComponent(userId || '')}`)
-      const data = await res.json()
-      setByCategory({ labels: data.labels || [], series: data.series || [] })
-    } catch (e) {
-      setError('Failed to load per-category timeseries')
+      setError('Failed to load forecast chart')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadTimeseries()
-  }, [])
+    loadSpendingChart()
+  }, [startDate, endDate])
+
+  const renderChart = () => {
+    if (activeChart === 'spending' && spendingChart) {
+      const theme = getThemeColors()
+      const sanitizeOptions = (opts) => {
+        const safe = opts ? { ...opts } : {}
+        safe.plugins = safe.plugins ? { ...safe.plugins } : {}
+        safe.plugins.tooltip = safe.plugins.tooltip ? { ...safe.plugins.tooltip } : {}
+        // Replace stringified callback with real function if needed
+        const cb = safe.plugins.tooltip.callbacks
+        if (!cb || typeof cb !== 'object') {
+          safe.plugins.tooltip.callbacks = {}
+        } else {
+          safe.plugins.tooltip.callbacks = { ...cb }
+        }
+        safe.plugins.tooltip.callbacks.label = function (context) {
+          const y = context?.parsed?.y ?? null
+          return `Chi tiêu: ${y != null ? y.toLocaleString('vi-VN') : '0'} VND`
+        }
+        return safe
+      }
+      const normalizedOptions = sanitizeOptions(spendingChart.options)
+      return (
+        <div>
+          <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>{spendingChart.title}</h3>
+          <Line 
+            data={spendingChart.data} 
+            options={{
+              ...normalizedOptions,
+              plugins: {
+                ...normalizedOptions.plugins,
+                tooltip: {
+                  ...normalizedOptions.plugins.tooltip,
+                  backgroundColor: theme.tooltipBg,
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  borderColor: theme.tooltipBorder,
+                  borderWidth: 1
+                },
+                legend: {
+                  ...(normalizedOptions.plugins?.legend || {}),
+                  labels: {
+                    ...((normalizedOptions.plugins?.legend && normalizedOptions.plugins.legend.labels) || {}),
+                    color: theme.textSecondary
+                  }
+                }
+              },
+              scales: {
+                ...normalizedOptions.scales,
+                x: {
+                  ...(normalizedOptions.scales?.x || {}),
+                  grid: {
+                    color: theme.borderColor
+                  },
+                  ticks: {
+                    color: theme.textSecondary
+                  }
+                },
+                y: {
+                  ...(normalizedOptions.scales?.y || {}),
+                  grid: {
+                    color: theme.borderColor
+                  },
+                  ticks: {
+                    color: theme.textSecondary
+                  }
+                }
+              }
+            }}
+          />
+        </div>
+      )
+    }
+    
+    if (activeChart === 'forecast' && forecastChart) {
+      const theme = getThemeColors()
+      const sanitizeOptions = (opts) => {
+        const safe = opts ? { ...opts } : {}
+        safe.plugins = safe.plugins ? { ...safe.plugins } : {}
+        safe.plugins.tooltip = safe.plugins.tooltip ? { ...safe.plugins.tooltip } : {}
+        const cb = safe.plugins.tooltip.callbacks
+        if (!cb || typeof cb !== 'object') {
+          safe.plugins.tooltip.callbacks = {}
+        } else {
+          safe.plugins.tooltip.callbacks = { ...cb }
+        }
+        safe.plugins.tooltip.callbacks.label = function (context) {
+          const y = context?.parsed?.y
+          const label = context?.dataset?.label || ''
+          return `${label}: ${y != null ? y.toLocaleString('vi-VN') + ' VND' : 'N/A'}`
+        }
+        return safe
+      }
+      const normalizedOptions = sanitizeOptions(forecastChart.options)
+      return (
+        <div>
+          <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>{forecastChart.title}</h3>
+          <Line 
+            data={forecastChart.data} 
+            options={{
+              ...normalizedOptions,
+              plugins: {
+                ...normalizedOptions.plugins,
+                tooltip: {
+                  ...normalizedOptions.plugins.tooltip,
+                  backgroundColor: theme.tooltipBg,
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  borderColor: theme.tooltipBorder,
+                  borderWidth: 1
+                },
+                legend: {
+                  ...(normalizedOptions.plugins?.legend || {}),
+                  labels: {
+                    ...((normalizedOptions.plugins?.legend && normalizedOptions.plugins.legend.labels) || {}),
+                    color: theme.textSecondary
+                  }
+                }
+              },
+              scales: {
+                ...normalizedOptions.scales,
+                x: {
+                  ...(normalizedOptions.scales?.x || {}),
+                  grid: {
+                    color: theme.borderColor
+                  },
+                  ticks: {
+                    color: theme.textSecondary
+                  }
+                },
+                y: {
+                  ...(normalizedOptions.scales?.y || {}),
+                  grid: {
+                    color: theme.borderColor
+                  },
+                  ticks: {
+                    color: theme.textSecondary
+                  }
+                }
+              }
+            }}
+          />
+        </div>
+      )
+    }
+    
+    return null
+  }
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 16, margin: '12px 0' }}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <button className="prompt-btn" onClick={loadTimeseries}>Spending Trend</button>
-        <button className="prompt-btn" onClick={loadTimeseriesByCategory}>Per-Category Trend</button>
-        <button className="prompt-btn" onClick={loadForecast}>Forecast (Prophet)</button>
+    <div style={{ 
+      background: 'var(--bg-secondary)', 
+      border: '1px solid var(--border-color)', 
+      borderRadius: 12, 
+      padding: 20, 
+      margin: '12px 0' 
+    }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <button 
+          className={`prompt-btn ${activeChart === 'spending' ? 'active' : ''}`}
+          onClick={loadSpendingChart}
+          style={{
+            background: activeChart === 'spending' ? 'var(--accent-color)' : 'var(--bg-primary)',
+            color: activeChart === 'spending' ? 'white' : 'var(--text-primary)'
+          }}
+        >
+          📊 Biểu đồ chi tiêu
+        </button>
+        <button 
+          className={`prompt-btn ${activeChart === 'forecast' ? 'active' : ''}`}
+          onClick={loadForecastChart}
+          style={{
+            background: activeChart === 'forecast' ? 'var(--accent-color)' : 'var(--bg-primary)',
+            color: activeChart === 'forecast' ? 'white' : 'var(--text-primary)'
+          }}
+        >
+          🔮 Dự báo 7 ngày tới
+        </button>
       </div>
-      {loading && <div style={{ color: 'var(--text-muted)' }}>Loading...</div>}
-      {error && <div style={{ color: 'var(--text-danger)' }}>{error}</div>}
-      {!loading && timeseries.labels.length > 0 && (
-        <div>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Spending Trend</div>
-          <LineChart labels={timeseries.labels} values={timeseries.values} />
+      
+      {loading && (
+        <div style={{ 
+          color: 'var(--text-muted)', 
+          textAlign: 'center', 
+          padding: '40px 0',
+          fontSize: '16px'
+        }}>
+          Đang tải biểu đồ...
         </div>
       )}
-      {!loading && forecast && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Forecast</div>
-          <LineChart labels={forecast.history?.labels || []} values={forecast.history?.values || []} color="#60a5fa" />
-          <LineChart labels={forecast.forecast?.labels || []} values={forecast.forecast?.values || []} color="#ef4444" />
+      
+      {error && (
+        <div style={{ 
+          color: 'var(--text-danger)', 
+          textAlign: 'center', 
+          padding: '20px 0',
+          background: 'rgba(239, 68, 68, 0.1)',
+          borderRadius: 8,
+          border: '1px solid rgba(239, 68, 68, 0.3)'
+        }}>
+          {error}
         </div>
       )}
-
-      {!loading && byCategory.labels.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Per-Category Trend</div>
-          {/* Legend */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-            {byCategory.series.map((s, idx) => {
-              const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#a855f7', '#f97316']
-              const color = colors[idx % colors.length]
-              return (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 12, height: 12, background: color, display: 'inline-block', borderRadius: 2 }}></span>
-                  <span style={{ fontSize: 12 }}>{s.category}</span>
-                </div>
-              )
-            })}
-          </div>
-          {byCategory.series.map((s, idx) => {
-            const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#a855f7', '#f97316']
-            const color = colors[idx % colors.length]
-            return (
-              <LineChart key={idx} labels={byCategory.labels} values={s.values} color={color} />
-            )
-          })}
-        </div>
-      )}
+      
+      {!loading && !error && renderChart()}
     </div>
   )
 }

@@ -48,12 +48,15 @@ QUY TẮC NGÔN NGỮ:
 
 # 1. Tài chính (Finance tools):
    - add_expense: Thêm chi tiêu mới (summary, amount, category, date)
+   - add_multiple_expenses: Thêm nhiều chi tiêu cùng lúc (expenses_text, date)
    - get_expense_history: Xem lịch sử chi tiêu
    - get_expenses_by_category: Lọc chi tiêu theo danh mục (Food, Transportation, Miscellaneous)
    - get_expenses_by_date_range: Xem chi tiêu trong khoảng thời gian
    - get_total_spending: Tính tổng chi tiêu
    - delete_expense: Xóa chi tiêu
    - update_expense: Cập nhật thông tin chi tiêu
+   - create_spending_chart: Tạo biểu đồ chi tiêu tương tác (start_date, end_date)
+   - create_forecast_chart: Tạo biểu đồ dự báo chi tiêu (days_ahead)
 
 # 2. Tìm kiếm Web (Search tools):
    - tavily_search: Tìm kiếm thông tin trên web (query, max_results=3)
