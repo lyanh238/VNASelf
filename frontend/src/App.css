@@ -35,6 +35,9 @@
   --gradient-end: #F59E0B;
   --user-gradient-start: #F97316;
   --user-gradient-end: #EC4899;
+  
+  /* Animation timing */
+  --sidebar-transition: 0.3s ease;
 }
 
 [data-theme="light"] {
@@ -150,13 +153,18 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-color);
-  transition: width 0.3s ease, transform 0.3s ease;
+  transition: width var(--sidebar-transition), transform var(--sidebar-transition);
   overflow: hidden;
   white-space: nowrap;
   position: relative;
+  height: 100vh; /* Fixed height */
 }
 
 .sidebar.collapsed {
+  width: 64px;
+}
+
+.sidebar.collapsed .user-profile {
   width: 64px;
 }
 
@@ -164,7 +172,8 @@ body {
 .sidebar.collapsed .new-chat-text,
 .sidebar.collapsed .navigation,
 .sidebar.collapsed .recents-section,
-.sidebar.collapsed .user-info {
+.sidebar.collapsed .user-info,
+.sidebar.collapsed .sidebar-content {
   opacity: 0;
   visibility: hidden;
 }
@@ -174,17 +183,19 @@ body {
 .sidebar .new-chat-text,
 .sidebar .navigation,
 .sidebar .recents-section,
-.sidebar .user-info {
-  transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+.sidebar .user-info,
+.sidebar .sidebar-content {
+  transition: opacity var(--sidebar-transition), visibility var(--sidebar-transition);
 }
 
 .sidebar:not(.collapsed) .X2D35-text,
 .sidebar:not(.collapsed) .new-chat-text,
 .sidebar:not(.collapsed) .navigation,
 .sidebar:not(.collapsed) .recents-section,
-.sidebar:not(.collapsed) .user-info {
+.sidebar:not(.collapsed) .user-info,
+.sidebar:not(.collapsed) .sidebar-content {
   visibility: visible;
-  transition: opacity 0.15s ease, visibility 0s linear 0s;
+  transition: opacity var(--sidebar-transition), visibility var(--sidebar-transition);
 }
 
 /* Tiny bar overlay to emulate ChatGPT rail when collapsed */
@@ -280,18 +291,22 @@ body {
   padding: 0 16px;
   gap: 12px;
   border-bottom: 1px solid var(--border-color);
-  transition: border-color 0.3s ease, padding 0.3s ease;
-  position: sticky;
+  transition: width var(--sidebar-transition), border-color var(--sidebar-transition), padding var(--sidebar-transition);
+  position: fixed;
   top: 0;
-  z-index: 30;
+  left: 0;
+  right: 0;
+  z-index: 100;
   background-color: var(--bg-secondary);
   flex-shrink: 0;
+  width: 288px;
 }
 
 /* Sidebar header when collapsed */
 .sidebar.collapsed .sidebar-header {
   padding: 0 16px;
   justify-content: flex-start;
+  width: 64px;
 }
 
 .sidebar.collapsed .hamburger-menu {
@@ -398,6 +413,19 @@ body {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Sidebar Content Container */
+.sidebar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow flex shrinking */
+  overflow: hidden;
+  margin-top: 64px; /* Space for fixed header */
+  margin-bottom: 60px; /* Space for fixed user profile */
+  height: calc(100vh - 64px - 60px); /* Full height minus header and user profile */
+  transition: opacity var(--sidebar-transition), visibility var(--sidebar-transition);
+}
+
 /* Navigation */
 .navigation {
   padding: 8px 12px;
@@ -405,6 +433,7 @@ body {
   flex-direction: column;
   gap: 8px;
   transition: opacity 0.5s ease;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .nav-link {
@@ -454,6 +483,14 @@ body {
   justify-content: center;
 }
 
+/* Recents Section - Scrollable area */
+.recents-section {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+  min-height: 0; /* Allow flex shrinking */
+}
 
 .recents-section::-webkit-scrollbar {
   width: 6px;
@@ -527,12 +564,20 @@ body {
   background-color: var(--accent-color);
 }
 
-/* User Profile */
+/* User Profile - Fixed at bottom */
 .user-profile {
   margin-top: auto;
   padding: 12px;
   border-top: 1px solid var(--border-color);
-  transition: border-color 0.3s ease;
+  transition: width var(--sidebar-transition), border-color var(--sidebar-transition);
+  flex-shrink: 0; /* Prevent shrinking */
+  background-color: var(--bg-secondary);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 288px;
 }
 
 .user-profile-btn {
@@ -1059,6 +1104,31 @@ body {
   
   .sidebar:not(.collapsed) {
     transform: translateX(0); /* Hiện sidebar */
+  }
+  
+  .sidebar-header {
+    top: 36px; /* Below mobile header */
+    width: 288px;
+    transition: width var(--sidebar-transition), border-color var(--sidebar-transition), padding var(--sidebar-transition);
+  }
+  
+  .sidebar.collapsed .sidebar-header {
+    width: 64px;
+  }
+  
+  .user-profile {
+    width: 288px;
+    transition: width var(--sidebar-transition), border-color var(--sidebar-transition);
+  }
+  
+  .sidebar.collapsed .user-profile {
+    width: 64px;
+  }
+  
+  .sidebar-content {
+    margin-top: 100px; /* Space for mobile header + sidebar header */
+    margin-bottom: 60px; /* Space for user profile */
+    height: calc(100vh - 36px - 64px - 60px); /* Full height minus mobile header, sidebar header and user profile */
   }
   
   .sidebar.collapsed {

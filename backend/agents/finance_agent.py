@@ -478,6 +478,214 @@ def forecast_spending(
     except Exception as e:
         return {"success": False, "error": f"Lỗi khi dự báo: {str(e)}"}
 
+@tool
+def create_spending_chart(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Tạo biểu đồ chi tiêu theo thời gian với dữ liệu tương tác.
+    
+    Args:
+        start_date: Ngày bắt đầu (YYYY-MM-DD, optional)
+        end_date: Ngày kết thúc (YYYY-MM-DD, optional)
+        user_id: ID người dùng (optional)
+    
+    Returns:
+        Dict chứa dữ liệu biểu đồ tương tác
+    """
+    try:
+        import asyncio
+        import concurrent.futures
+        
+        if not _payment_service:
+            return {"success": False, "error": "Payment service not initialized"}
+        
+        # Get timeseries data
+        def run_async():
+            return asyncio.run(_payment_service.get_daily_timeseries(
+                user_id=user_id,
+                start_date=datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None,
+                end_date=datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+            ))
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(run_async)
+            series = future.result()
+        
+        if not series:
+            return {"success": False, "error": "Không có dữ liệu chi tiêu trong khoảng thời gian này"}
+        
+        # Format data for interactive chart
+        chart_data = {
+            "labels": [point["date"] for point in series],
+            "datasets": [{
+                "label": "Chi tiêu (VND)",
+                "data": [point["amount"] for point in series],
+                "borderColor": "rgb(75, 192, 192)",
+                "backgroundColor": "rgba(75, 192, 192, 0.2)",
+                "tension": 0.1,
+                "pointRadius": 6,
+                "pointHoverRadius": 8
+            }]
+        }
+        
+        return {
+            "success": True,
+            "chart_type": "line",
+            "title": f"Biểu đồ chi tiêu từ {start_date or 'đầu'} đến {end_date or 'hiện tại'}",
+            "data": chart_data,
+            "options": {
+                "responsive": True,
+                "interaction": {
+                    "intersect": False,
+                    "mode": "index"
+                },
+                "plugins": {
+                    "tooltip": {
+                        "callbacks": {
+                            "label": "function(context) { return 'Chi tiêu: ' + context.parsed.y.toLocaleString('vi-VN') + ' VND'; }"
+                        }
+                    }
+                },
+                "scales": {
+                    "y": {
+                        "beginAtZero": True,
+                        "ticks": {
+                            "callback": "function(value) { return value.toLocaleString('vi-VN') + ' VND'; }"
+                        }
+                    }
+                }
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Lỗi khi tạo biểu đồ chi tiêu: {str(e)}"}
+
+@tool
+def create_forecast_chart(
+    days_ahead: int = 7,
+    user_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Tạo biểu đồ dự báo chi tiêu với Prophet (7 ngày tới).
+    
+    Args:
+        days_ahead: Số ngày dự báo (mặc định 7)
+        user_id: ID người dùng (optional)
+    
+    Returns:
+        Dict chứa dữ liệu biểu đồ dự báo tương tác
+    """
+    try:
+        import pandas as pd
+        from prophet import Prophet
+        import asyncio
+        import concurrent.futures
+        
+        if not _payment_service:
+            return {"success": False, "error": "Payment service not initialized"}
+        
+        # Get historical data
+        def run_async():
+            return asyncio.run(_payment_service.get_daily_timeseries(user_id=user_id))
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(run_async)
+            series = future.result()
+        
+        if not series:
+            return {"success": False, "error": "Không có dữ liệu đủ để dự báo"}
+        
+        # Prepare data for Prophet
+        df = pd.DataFrame(series)
+        df.rename(columns={"date": "ds", "amount": "y"}, inplace=True)
+        df["ds"] = pd.to_datetime(df["ds"])
+        
+        # Train Prophet model
+        m = Prophet(daily_seasonality=True, weekly_seasonality=True)
+        m.fit(df)
+        
+        # Create future dataframe
+        future = m.make_future_dataframe(periods=days_ahead)
+        forecast = m.predict(future)
+        
+        # Split into history and forecast
+        hist = forecast.iloc[:len(df)]
+        fut = forecast.iloc[len(df):]
+        
+        # Format data for interactive chart
+        history_data = {
+            "labels": hist["ds"].dt.strftime("%Y-%m-%d").tolist(),
+            "datasets": [{
+                "label": "Chi tiêu thực tế",
+                "data": hist["yhat"].round(2).tolist(),
+                "borderColor": "rgb(75, 192, 192)",
+                "backgroundColor": "rgba(75, 192, 192, 0.2)",
+                "tension": 0.1,
+                "pointRadius": 4,
+                "pointHoverRadius": 6
+            }]
+        }
+        
+        forecast_data = {
+            "labels": fut["ds"].dt.strftime("%Y-%m-%d").tolist(),
+            "datasets": [{
+                "label": f"Dự báo {days_ahead} ngày tới",
+                "data": fut["yhat"].round(2).tolist(),
+                "borderColor": "rgb(255, 99, 132)",
+                "backgroundColor": "rgba(255, 99, 132, 0.2)",
+                "borderDash": [5, 5],
+                "tension": 0.1,
+                "pointRadius": 4,
+                "pointHoverRadius": 6
+            }]
+        }
+        
+        # Combine data
+        all_labels = history_data["labels"] + forecast_data["labels"]
+        all_datasets = history_data["datasets"] + forecast_data["datasets"]
+        
+        combined_data = {
+            "labels": all_labels,
+            "datasets": all_datasets
+        }
+        
+        return {
+            "success": True,
+            "chart_type": "line",
+            "title": f"Biểu đồ dự báo chi tiêu {days_ahead} ngày tới",
+            "data": combined_data,
+            "options": {
+                "responsive": True,
+                "interaction": {
+                    "intersect": False,
+                    "mode": "index"
+                },
+                "plugins": {
+                    "tooltip": {
+                        "callbacks": {
+                            "label": "function(context) { return context.dataset.label + ': ' + context.parsed.y.toLocaleString('vi-VN') + ' VND'; }"
+                        }
+                    },
+                    "legend": {
+                        "display": True,
+                        "position": "top"
+                    }
+                },
+                "scales": {
+                    "y": {
+                        "beginAtZero": True,
+                        "ticks": {
+                            "callback": "function(value) { return value.toLocaleString('vi-VN') + ' VND'; }"
+                        }
+                    }
+                }
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Lỗi khi tạo biểu đồ dự báo: {str(e)}"}
+
 
 class FinanceAgent(BaseAgent):
     """Specialized agent for financial operations and spending tracking."""
@@ -501,7 +709,9 @@ class FinanceAgent(BaseAgent):
                 get_total_spending,
                 get_spending_timeseries,
                 get_spending_timeseries_by_category,
-                forecast_spending
+                forecast_spending,
+                create_spending_chart,
+                create_forecast_chart
             ]
     
     def get_system_prompt(self) -> str:
@@ -529,6 +739,16 @@ CÁC TOOL CHI TIÊU:
    - Dùng khi: "Thêm chi tiêu hôm nay 20k tiền ăn, 50k tiền xăng, 60k tiền giặt"
    - Tham số: expenses_text, date
    - Tự động phân tích và phân loại chi tiêu
+
+3. create_spending_chart: Tạo biểu đồ chi tiêu tương tác
+   - Dùng khi: "Vẽ biểu đồ chi tiêu tháng này", "Hiển thị biểu đồ chi tiêu từ ngày X đến ngày Y"
+   - Tham số: start_date, end_date, user_id
+   - Trả về dữ liệu biểu đồ Chart.js tương tác
+
+4. create_forecast_chart: Tạo biểu đồ dự báo chi tiêu
+   - Dùng khi: "Dự báo chi tiêu 7 ngày tới", "Vẽ biểu đồ dự báo chi tiêu"
+   - Tham số: days_ahead, user_id
+   - Sử dụng Prophet model để dự báo
 
 Các trường thông tin chi tiêu:
 - Summary: Mô tả ngắn gọn về khoản chi

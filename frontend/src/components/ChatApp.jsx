@@ -511,46 +511,48 @@ const ChatApp = () => {
             <span className="X2D35-text">X2D35</span>
           </div>
 
-          <nav className="navigation">
-            <button 
-              className={`nav-link`}
-              onClick={handleNewChat}
-            > 
-              <span className="nav-icon">
-                <MessageSquarePlus size={20} strokeWidth={2} />
-              </span>
-              New chat
-            </button>
-          </nav>
+          <div className="sidebar-content">
+            <nav className="navigation">
+              <button 
+                className={`nav-link`}
+                onClick={handleNewChat}
+              > 
+                <span className="nav-icon">
+                  <MessageSquarePlus size={20} strokeWidth={2} />
+                </span>
+                New chat
+              </button>
+            </nav>
 
-                <nav className="navigation">
-                  <button 
-                    className={`nav-link ${currentView === 'main' ? 'active' : ''}`}
-                    onClick={handleBackToMain}
-                  > 
-                    <span className="nav-icon">
-                      <MessageCirclePlus size={20} strokeWidth={2} />
-                    </span>
-                    Chats
-                  </button>
-            <button 
-              className={`nav-link ${currentView === 'agents' || currentView === 'agent-chat' ? 'active' : ''}`}
-              onClick={handleAgentClick}
-            >
-                    <span className="nav-icon">
-                      <Bot size={20} strokeWidth={2} />
-                    </span>
-              Agent
-            </button>
-          </nav>
+            <nav className="navigation">
+              <button 
+                className={`nav-link ${currentView === 'main' ? 'active' : ''}`}
+                onClick={handleBackToMain}
+              > 
+                <span className="nav-icon">
+                  <MessageCirclePlus size={20} strokeWidth={2} />
+                </span>
+                Chats
+              </button>
+              <button 
+                className={`nav-link ${currentView === 'agents' || currentView === 'agent-chat' ? 'active' : ''}`}
+                onClick={handleAgentClick}
+              >
+                <span className="nav-icon">
+                  <Bot size={20} strokeWidth={2} />
+                </span>
+                Agent
+              </button>
+            </nav>
 
-          <div className="recents-section">
-            <ConversationList 
-              onConversationSelect={handleConversationSelect}
-              currentThreadId={currentThreadId}
-              onNewChat={handleNewChat}
-              refreshTrigger={currentThreadId}
-            />
+            <div className="recents-section">
+              <ConversationList 
+                onConversationSelect={handleConversationSelect}
+                currentThreadId={currentThreadId}
+                onNewChat={handleNewChat}
+                refreshTrigger={currentThreadId}
+              />
+            </div>
           </div>
 
           <div className="user-profile">

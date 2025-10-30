@@ -365,6 +365,199 @@ async def get_finance_forecast(user_id: Optional[str] = None, days_ahead: int = 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating forecast: {str(e)}")
 
+@app.get("/api/finance/chart/spending")
+async def get_spending_chart(start_date: Optional[str] = None, end_date: Optional[str] = None, user_id: Optional[str] = None):
+    """API endpoint để tạo biểu đồ chi tiêu tương tác"""
+    if not payment_history_service:
+        raise HTTPException(status_code=500, detail="Payment history service not initialized")
+    try:
+        from datetime import datetime as dt
+        
+        # Parse dates
+        sd = dt.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+        ed = dt.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+        
+        # Get timeseries data directly from payment service (ignore user_id per request)
+        series = await payment_history_service.get_daily_timeseries(
+            user_id=None,
+            start_date=sd,
+            end_date=ed
+        )
+        
+        if not series:
+            # Return 200 with a friendly message so UI can render empty state gracefully
+            return {
+                "success": False,
+                "chart_type": "line",
+                "title": f"Biểu đồ chi tiêu từ {start_date or 'đầu'} đến {end_date or 'cuối'}",
+                "data": {"labels": [], "datasets": []},
+                "options": {},
+                "error": "Không có dữ liệu chi tiêu trong khoảng thời gian này"
+            }
+        
+        # Format data for interactive chart
+        chart_data = {
+            "labels": [point["date"] for point in series],
+            "datasets": [{
+                "label": "Chi tiêu (VND)",
+                "data": [point["amount"] for point in series],
+                "borderColor": "rgb(75, 192, 192)",
+                "backgroundColor": "rgba(75, 192, 192, 0.1)",
+                "tension": 0.1,
+                "fill": True
+            }]
+        }
+        
+        # Create chart options
+        chart_options = {
+            "responsive": True,
+            "interaction": {
+                "intersect": False,
+                "mode": "index"
+            },
+            "plugins": {
+                "title": {
+                    "display": True,
+                    "text": f"Biểu đồ chi tiêu từ {start_date or 'đầu'} đến {end_date or 'cuối'}"
+                },
+                "tooltip": {
+                    "callbacks": {
+                        "label": "function(context) { return 'Chi tiêu: ' + context.parsed.y.toLocaleString('vi-VN') + ' VND'; }"
+                    }
+                }
+            },
+            "scales": {
+                "y": {
+                    "beginAtZero": True,
+                    "ticks": {
+                        "callback": "function(value) { return value.toLocaleString('vi-VN') + ' VND'; }"
+                    }
+                }
+            }
+        }
+        
+        return {
+            "success": True,
+            "chart_type": "line",
+            "title": f"Biểu đồ chi tiêu từ {start_date or 'đầu'} đến {end_date or 'cuối'}",
+            "data": chart_data,
+            "options": chart_options
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating spending chart: {str(e)}")
+
+@app.get("/api/finance/chart/forecast")
+async def get_forecast_chart(days_ahead: int = 7, user_id: Optional[str] = None):
+    """API endpoint để tạo biểu đồ dự báo chi tiêu"""
+    if not payment_history_service:
+        raise HTTPException(status_code=500, detail="Payment history service not initialized")
+    try:
+        from datetime import datetime as dt, timedelta
+        import pandas as pd
+        from prophet import Prophet
+        
+        # Get historical data (ignore user_id per request)
+        series = await payment_history_service.get_daily_timeseries(user_id=None)
+        
+        if len(series) < 7:
+            return {
+                "success": False,
+                "chart_type": "line",
+                "title": f"Biểu đồ dự báo chi tiêu {days_ahead} ngày tới",
+                "data": {"labels": [], "datasets": []},
+                "options": {},
+                "error": "Không có đủ dữ liệu để dự báo (cần ít nhất 7 ngày)"
+            }
+        
+        # Prepare data for Prophet
+        df = pd.DataFrame(series)
+        df['ds'] = pd.to_datetime(df['date'])
+        df['y'] = df['amount']
+        df = df[['ds', 'y']].dropna()
+        
+        # Train Prophet model
+        model = Prophet(daily_seasonality=True, weekly_seasonality=True)
+        model.fit(df)
+        
+        # Create future dataframe
+        future = model.make_future_dataframe(periods=days_ahead)
+        forecast = model.predict(future)
+        
+        # Get historical and forecast data
+        historical_data = forecast[forecast['ds'] <= df['ds'].max()]
+        forecast_data = forecast[forecast['ds'] > df['ds'].max()]
+        
+        # Format data for chart
+        all_dates = pd.concat([historical_data['ds'], forecast_data['ds']])
+        all_dates = all_dates.dt.strftime('%Y-%m-%d').tolist()
+        
+        chart_data = {
+            "labels": all_dates,
+            "datasets": [
+                {
+                    "label": "Chi tiêu thực tế",
+                    "data": historical_data['yhat'].tolist() + [None] * len(forecast_data),
+                    "borderColor": "rgb(75, 192, 192)",
+                    "backgroundColor": "rgba(75, 192, 192, 0.1)",
+                    "tension": 0.1,
+                    "fill": False
+                },
+                {
+                    "label": f"Dự báo {days_ahead} ngày tới",
+                    "data": [None] * len(historical_data) + forecast_data['yhat'].tolist(),
+                    "borderColor": "rgb(255, 99, 132)",
+                    "backgroundColor": "rgba(255, 99, 132, 0.1)",
+                    "tension": 0.1,
+                    "fill": False,
+                    "borderDash": [5, 5]
+                }
+            ]
+        }
+        
+        # Create chart options
+        chart_options = {
+            "responsive": True,
+            "interaction": {
+                "intersect": False,
+                "mode": "index"
+            },
+            "plugins": {
+                "title": {
+                    "display": True,
+                    "text": f"Biểu đồ dự báo chi tiêu {days_ahead} ngày tới"
+                },
+                "tooltip": {
+                    "callbacks": {
+                        "label": "function(context) { return context.dataset.label + ': ' + (context.parsed.y ? context.parsed.y.toLocaleString('vi-VN') + ' VND' : 'N/A'); }"
+                    }
+                }
+            },
+            "scales": {
+                "y": {
+                    "beginAtZero": True,
+                    "ticks": {
+                        "callback": "function(value) { return value.toLocaleString('vi-VN') + ' VND'; }"
+                    }
+                }
+            }
+        }
+        
+        return {
+            "success": True,
+            "chart_type": "line",
+            "title": f"Biểu đồ dự báo chi tiêu {days_ahead} ngày tới",
+            "data": chart_data,
+            "options": chart_options
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating forecast chart: {str(e)}")
+
 @app.get("/api/finance/timeseries-by-category", response_model=TimeSeriesByCategoryResponse)
 async def get_finance_timeseries_by_category(user_id: Optional[str] = None, start_date: Optional[str] = None, end_date: Optional[str] = None):
     if not payment_history_service:
@@ -631,7 +824,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         manager.disconnect(websocket)
 
 # Mount static files for React app
-app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="static")
+import os
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(
