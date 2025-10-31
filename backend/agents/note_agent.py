@@ -37,7 +37,7 @@ class NoteAgent(BaseAgent):
         """Initialize the note agent with tools."""
         if self._note_tools is None:
             self._note_tools = [
-                self._create_add_note_tool(),
+                self._create_record_note_tool(),
                 self._create_get_note_tool(),
                 self._create_update_note_tool(),
                 self._create_delete_note_tool(),
@@ -98,30 +98,26 @@ class NoteAgent(BaseAgent):
         
         return 'medium'
     
-    def _create_add_note_tool(self):
-        """Create the add note tool."""
+    def _create_record_note_tool(self):
+        """Create the record note tool (alias for add_note)."""
         
         @tool
-        async def add_note(
-            title: str,
+        async def record_note(
             content: str,
             user_id: str = "default_user",
             category: str = None,
-            tags: str = None,
-            priority: str = None,
-            is_pinned: bool = False
+            thread_id: str = None,
+            request_context: str = None
         ) -> Dict[str, Any]:
             """
-            Add a new note with automatic categorization.
+            Record a new note with automatic categorization.
             
             Args:
-                title: Note title
-                content: Note content
+                content: Note content (required)
                 user_id: User ID (default: default_user)
                 category: Note category (optional, will be auto-detected if not provided)
-                tags: Comma-separated tags (optional, will be auto-extracted if not provided)
-                priority: Note priority - low, medium, high (optional, will be auto-determined if not provided)
-                is_pinned: Whether to pin the note (default: False)
+                thread_id: Thread ID for context (optional)
+                request_context: Context of the request (optional)
             
             Returns:
                 Dict containing the created note information
@@ -129,33 +125,20 @@ class NoteAgent(BaseAgent):
             try:
                 # Auto-categorize if not provided
                 if not category:
-                    category = self._categorize_note(title, content)
+                    category = self._categorize_note("", content)
                 
-                # Auto-extract tags if not provided
-                if not tags:
-                    extracted_tags = self._extract_tags(content)
-                    tags = extracted_tags
-                else:
-                    tags = [tag.strip() for tag in tags.split(',')]
-                
-                # Auto-determine priority if not provided
-                if not priority:
-                    priority = self._determine_priority(title, content)
-                
-                # Add note to service
-                note = await self.note_service.add_note(
-                    user_id=user_id,
-                    title=title,
+                # Save to Neon DB only (removed JSON storage)
+                note = await self.note_service.create_note(
                     content=content,
                     category=category,
-                    tags=tags,
-                    priority=priority,
-                    is_pinned=is_pinned
+                    user_id=user_id,
+                    thread_id=thread_id,
+                    request_context=request_context
                 )
                 
                 return {
                     "success": True,
-                    "message": f"Đã tạo ghi chú '{title}' thành công",
+                    "message": f"Đã tạo ghi chú thành công",
                     "note": note
                 }
                 
@@ -165,7 +148,7 @@ class NoteAgent(BaseAgent):
                     "error": f"Lỗi khi tạo ghi chú: {str(e)}"
                 }
         
-        return add_note
+        return record_note
     
     def _create_get_note_tool(self):
         """Create the get note tool."""
@@ -333,7 +316,8 @@ class NoteAgent(BaseAgent):
                 Dict containing the list of notes
             """
             try:
-                notes = await self.note_service.get_notes_by_user(user_id, limit, category)
+                # NoteService exposes get_notes(user_id, limit, category)
+                notes = await self.note_service.get_notes(user_id, limit, category)
                 
                 return {
                     "success": True,

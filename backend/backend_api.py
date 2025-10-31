@@ -17,6 +17,7 @@ import uvicorn
 
 from contextlib import asynccontextmanager
 from core import MultiAgentSystem
+from langsmith import traceable
 from services.conversation_service import ConversationService
 from services.conversation_title_service import ConversationTitleService
 from services.payment_history_service import PaymentHistoryService
@@ -220,6 +221,7 @@ async def root():
     return FileResponse("../frontend/dist/index.html")
 
 @app.post("/api/chat", response_model=ChatResponse)
+@traceable(name="api.chat_endpoint")
 async def chat_endpoint(message: ChatMessage):
     """Process a chat message through the multi-agent system."""
     if not multi_agent_system:
@@ -284,6 +286,7 @@ async def chat_endpoint(message: ChatMessage):
         raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
 
 @app.get("/api/chat/history/{thread_id}", response_model=ChatHistory)
+@traceable(name="api.get_chat_history")
 async def get_chat_history(thread_id: str, limit: int = 50):
     """Get chat history for a specific thread."""
     if not multi_agent_system:
@@ -297,6 +300,7 @@ async def get_chat_history(thread_id: str, limit: int = 50):
         raise HTTPException(status_code=500, detail=f"Error getting chat history: {str(e)}")
 
 @app.get("/api/chat/threads/{user_id}", response_model=List[ThreadSummary])
+@traceable(name="api.get_user_threads")
 async def get_user_threads(user_id: str):
     """Get all conversation threads for a user."""
     if not multi_agent_system:
@@ -337,6 +341,7 @@ async def get_user_threads(user_id: str):
 
 # Finance analytics endpoints for charts
 @app.get("/api/finance/timeseries", response_model=TimeSeriesResponse)
+@traceable(name="api.finance_timeseries")
 async def get_finance_timeseries(user_id: Optional[str] = None, start_date: Optional[str] = None, end_date: Optional[str] = None):
     if not payment_history_service:
         raise HTTPException(status_code=500, detail="Payment history service not initialized")
@@ -352,6 +357,7 @@ async def get_finance_timeseries(user_id: Optional[str] = None, start_date: Opti
         raise HTTPException(status_code=500, detail=f"Error generating timeseries: {str(e)}")
 
 @app.get("/api/finance/forecast", response_model=ForecastResponse)
+@traceable(name="api.finance_forecast")
 async def get_finance_forecast(user_id: Optional[str] = None, days_ahead: int = 14):
     if not payment_history_service:
         raise HTTPException(status_code=500, detail="Payment history service not initialized")
@@ -368,6 +374,7 @@ async def get_finance_forecast(user_id: Optional[str] = None, days_ahead: int = 
         raise HTTPException(status_code=500, detail=f"Error generating forecast: {str(e)}")
 
 @app.get("/api/finance/chart/spending")
+@traceable(name="api.finance_chart_spending")
 async def get_spending_chart(start_date: Optional[str] = None, end_date: Optional[str] = None, user_id: Optional[str] = None):
     """API endpoint để tạo biểu đồ chi tiêu tương tác"""
     if not payment_history_service:
@@ -452,6 +459,7 @@ async def get_spending_chart(start_date: Optional[str] = None, end_date: Optiona
         raise HTTPException(status_code=500, detail=f"Error creating spending chart: {str(e)}")
 
 @app.get("/api/finance/chart/forecast")
+@traceable(name="api.finance_chart_forecast")
 async def get_forecast_chart(days_ahead: int = 7, user_id: Optional[str] = None):
     """API endpoint để tạo biểu đồ dự báo chi tiêu"""
     if not payment_history_service:
@@ -561,6 +569,7 @@ async def get_forecast_chart(days_ahead: int = 7, user_id: Optional[str] = None)
         raise HTTPException(status_code=500, detail=f"Error creating forecast chart: {str(e)}")
 
 @app.get("/api/finance/timeseries-by-category", response_model=TimeSeriesByCategoryResponse)
+@traceable(name="api.finance_timeseries_by_category")
 async def get_finance_timeseries_by_category(user_id: Optional[str] = None, start_date: Optional[str] = None, end_date: Optional[str] = None):
     if not payment_history_service:
         raise HTTPException(status_code=500, detail="Payment history service not initialized")
@@ -782,6 +791,7 @@ async def delete_account(email: str):
         raise HTTPException(status_code=500, detail=f"Error deleting account: {str(e)}")
 
 @app.websocket("/ws/{client_id}")
+@traceable(name="api.websocket_chat")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """WebSocket endpoint for real-time chat."""
     await manager.connect(websocket)

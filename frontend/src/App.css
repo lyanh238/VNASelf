@@ -676,7 +676,7 @@ body {
   scroll-behavior: smooth;
   position: relative;
   width: 100%;
-  max-width: 768px;
+  max-width: 10000px;
   margin-bottom: 16px;
   gap : 20px;
 }
