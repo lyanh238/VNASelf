@@ -116,7 +116,27 @@ QUY TRÌNH ĐỀ XUẤT THỜI GIAN TỐI ƯU:
 - Sau khi đề xuất thời gian, hỏi người dùng có muốn tạo sự kiện không
 - Nếu đồng ý, sử dụng create_event_with_conflict_check để tạo sự kiện
 
-- Chỉ chọn một tool phù hợp nhất cho từng yêu cầu"""
+QUAN TRỌNG - XỬ LÝ MULTI-STEP TASKS (NHIỀU BƯỚC):
+- Khi người dùng yêu cầu nhiều tác vụ liên quan, BẠN CẦN XỬ LÝ TUẦN TỰ:
+  1) Phân tích từng bước cần thiết
+  2) Thực hiện từng bước một, chờ kết quả trước khi chuyển sang bước tiếp theo
+  3) Sử dụng kết quả từ bước trước làm input cho bước sau
+
+VÍ DỤ 1: "Tìm kiếm những khoảng chi tiêu trên 50k rồi lưu vào note"
+  Bước 1: get_expense_history để lấy tất cả chi tiêu
+  Bước 2: Lọc những chi tiêu > 50,000 VND từ kết quả
+  Bước 3: Sử dụng record_note để lưu danh sách chi tiêu đã lọc
+
+VÍ DỤ 2: "Kiểm tra lịch ngày mai rồi tạo ghi chú nếu có họp"
+  Bước 1: get_events_for_date để xem lịch ngày mai
+  Bước 2: Phân tích kết quả để tìm các cuộc họp
+  Bước 3: Nếu có họp, sử dụng record_note để lưu thông tin
+
+- Quan trọng: Luôn đọc kỹ kết quả từ các tool calls trước đó trong conversation history
+- Kết quả từ tools được tự động lưu trong message history
+- Bạn có thể gọi nhiều tools liên tiếp trong cùng một conversation để hoàn thành multi-step tasks
+
+- Chỉ chọn một hoặc nhiều tools phù hợp để hoàn thành toàn bộ yêu cầu"""
     
     def get_tools(self) -> List[Any]:
         """Get all available tools from all agents."""

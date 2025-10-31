@@ -8,6 +8,7 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
+from langsmith import traceable
 
 from agents import CalendarAgent, SupervisorAgent, FinanceAgent, SearchAgent, NoteAgent
 from services import MCPService
@@ -17,7 +18,6 @@ from services.conversation_title_service import ConversationTitleService
 from services.per_conversation_storage_service import PerConversationStorageService
 from services.payment_history_service import PaymentHistoryService
 from services.note_service import NoteService
-from services.note_storage_service import NoteStorageService
 from .state_manager import StateManager
 
 
@@ -34,7 +34,6 @@ class MultiAgentSystem:
         self.per_conversation_storage = PerConversationStorageService()
         self.payment_service = PaymentHistoryService()
         self.note_db_service = NoteService()
-        self.note_storage_service = NoteStorageService()
         self.state_manager = StateManager()
         
         # Initialize agents
@@ -44,9 +43,13 @@ class MultiAgentSystem:
         self.note_agent = NoteAgent(self.model, self.note_db_service)
         self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent, self.note_agent)
         
+        # Note: Cross-agent context is automatically handled by LangGraph MessagesState
+        # which stores all conversation history and makes it available to all agents
+        
         self.graph = None
         self._initialized = False
     
+    @traceable(name="multi_agent.initialize")
     async def initialize(self):
         """Initialize the multi-agent system with parallel initialization."""
         if self._initialized:
@@ -63,7 +66,6 @@ class MultiAgentSystem:
             self.per_conversation_storage.initialize(),
             self.payment_service.initialize(),
             self.note_db_service.initialize(),
-            self.note_storage_service.initialize(),
             self.mcp_service.initialize(),
             return_exceptions=True  # Don't fail if one service fails
         )
@@ -77,6 +79,7 @@ class MultiAgentSystem:
         self._initialized = True
         print(" Multi-Agent System initialized successfully!")
     
+    @traceable(name="multi_agent.build_graph")
     async def _build_graph(self):
         """Build the LangGraph for the multi-agent system."""
         builder = StateGraph(MessagesState)
@@ -84,7 +87,7 @@ class MultiAgentSystem:
         # Get supervisor model with tools
         supervisor_model = self.supervisor_agent.get_supervisor_model()
         
-        def supervisor_node(state: MessagesState):
+        def _supervisor_node_impl(state: MessagesState):
             """Supervisor node that decides which tool to use."""
             system_prompt = self.supervisor_agent.get_system_prompt()
             current_time = self.supervisor_agent.get_current_time_iso()
@@ -96,6 +99,9 @@ class MultiAgentSystem:
                     {"role": "system", "content": full_prompt}
                 ] + state["messages"])]
             }
+
+        # Wrap the supervisor node with a LangSmith span for visibility in traces
+        supervisor_node = traceable(name="graph.supervisor_node")(_supervisor_node_impl)
         
         # Add nodes
         builder.add_node("supervisor", supervisor_node)
@@ -111,6 +117,7 @@ class MultiAgentSystem:
         self.graph = builder.compile(checkpointer=self.state_manager.get_memory())
         print(" Agent graph built successfully!")
     
+    @traceable(name="multi_agent.process_message")
     async def process_message(self, message: str, thread_id: Optional[str] = None, user_id: Optional[str] = None, model_name: Optional[str] = None, locale: Optional[str] = None) -> str:
         """Process a message through the multi-agent system."""
         if not self._initialized:
@@ -154,10 +161,24 @@ class MultiAgentSystem:
             timestamp=current_timestamp
         )
         
-        # Language instruction based on locale
+        # Auto-detect language from user message if no explicit locale provided
+        # Default to Vietnamese for Vietnamese users
+        detected_language = None
+        if not locale:
+            # Simple detection based on Vietnamese characters and common patterns
+            vietnamese_chars = set("àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ")
+            if any(char in vietnamese_chars for char in message.lower()):
+                detected_language = "vi"
+            elif message.strip()[0].isascii() and not any(char in vietnamese_chars for char in message):
+                detected_language = "en"
+        
+        # Use detected language or provided locale
+        language_to_use = detected_language or locale
+        
+        # Language instruction based on locale or detected language
         language_instruction = None
-        if locale:
-            lang = (locale or "").lower()
+        if language_to_use:
+            lang = (language_to_use or "").lower()
             if lang.startswith("vi"):
                 language_instruction = "Hãy trả lời bằng tiếng Việt."
             elif lang.startswith("ja"):
@@ -169,6 +190,9 @@ class MultiAgentSystem:
             elif lang.startswith("en"):
                 language_instruction = "Please answer in English."
             # fallback: no extra instruction
+        else:
+            # Default to Vietnamese if language cannot be determined
+            language_instruction = "Hãy trả lời bằng tiếng Việt."
 
         user_content = f"{language_instruction}\n\n{message}" if language_instruction else message
 
@@ -249,6 +273,7 @@ class MultiAgentSystem:
         
         return formatted_response
     
+    @traceable(name="multi_agent.get_chat_history")
     async def get_chat_history(self, thread_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Get conversation logs for a thread using per-conversation storage."""
         try:
@@ -265,6 +290,7 @@ class MultiAgentSystem:
             print(f"Error getting chat history: {str(e)}")
             return []
     
+    @traceable(name="multi_agent.get_all_conversation_messages")
     async def get_all_conversation_messages(self, thread_id: str) -> List[Dict[str, Any]]:
         """Get all messages for a conversation (no pagination)."""
         try:
@@ -281,15 +307,18 @@ class MultiAgentSystem:
             print(f"Error getting all conversation messages: {str(e)}")
             return []
     
+    @traceable(name="multi_agent.get_user_chat_history")
     async def get_user_chat_history(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Get conversation logs for a specific user."""
         messages = await self.logs_service.get_user_chat_history(user_id, limit)
         return [msg.to_dict() for msg in messages]
     
+    @traceable(name="multi_agent.get_user_threads")
     async def get_user_threads(self, user_id: str) -> List[str]:
         """Get all thread IDs for a user."""
         return await self.logs_service.get_threads_for_user(user_id)
     
+    @traceable(name="multi_agent.delete_thread")
     async def delete_thread(self, thread_id: str) -> bool:
         """Delete a conversation thread from both storage systems."""
         try:

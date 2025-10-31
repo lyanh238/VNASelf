@@ -11,6 +11,7 @@ import json
 from services.payment_history_service import PaymentHistoryService
 import pytz
 import json
+from langsmith import traceable
 
 TIMEZONE = 'Asia/Ho_Chi_Minh'
 VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
@@ -23,6 +24,7 @@ _payment_service = None
 
 # Standalone tool functions
 @tool
+@traceable(name="tools.finance.add_expense")
 def add_expense(
     summary: str, 
     amount: float, 
@@ -105,6 +107,7 @@ def add_expense(
         }
 
 @tool
+@traceable(name="tools.finance.add_multiple_expenses")
 def add_multiple_expenses(
     expenses_text: str,
     date: str,
@@ -231,6 +234,7 @@ def add_multiple_expenses(
         }
 
 @tool
+@traceable(name="tools.finance.get_expense_history")
 def get_expense_history(
     user_id: Optional[str] = None,
     limit: int = 10
@@ -277,6 +281,7 @@ def get_expense_history(
         }
 
 @tool
+@traceable(name="tools.finance.get_total_spending")
 def get_total_spending(
     user_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -336,6 +341,7 @@ def get_total_spending(
         }
 
 @tool
+@traceable(name="tools.finance.get_spending_timeseries")
 def get_spending_timeseries(
     user_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -380,6 +386,7 @@ def get_spending_timeseries(
         return {"success": False, "error": f"Lỗi khi lấy timeseries: {str(e)}"}
 
 @tool
+@traceable(name="tools.finance.get_spending_timeseries_by_category")
 def get_spending_timeseries_by_category(
     user_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -425,6 +432,7 @@ def get_spending_timeseries_by_category(
         return {"success": False, "error": f"Lỗi khi lấy timeseries theo danh mục: {str(e)}"}
 
 @tool
+@traceable(name="tools.finance.forecast_spending")
 def forecast_spending(
     user_id: Optional[str] = None,
     days_ahead: int = 14
@@ -479,6 +487,7 @@ def forecast_spending(
         return {"success": False, "error": f"Lỗi khi dự báo: {str(e)}"}
 
 @tool
+@traceable(name="tools.finance.create_spending_chart")
 def create_spending_chart(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -563,6 +572,7 @@ def create_spending_chart(
         return {"success": False, "error": f"Lỗi khi tạo biểu đồ chi tiêu: {str(e)}"}
 
 @tool
+@traceable(name="tools.finance.create_forecast_chart")
 def create_forecast_chart(
     days_ahead: int = 7,
     user_id: Optional[str] = None

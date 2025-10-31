@@ -9,6 +9,7 @@ from services.mcp_service import MCPService
 import pytz
 from datetime import datetime, timedelta
 from langchain_core.tools import tool
+from langsmith import traceable
 
 class CalendarAgent(BaseAgent):
     """Specialized agent for Google Calendar operations."""
@@ -28,6 +29,7 @@ class CalendarAgent(BaseAgent):
     
     def get_system_prompt(self) -> str:
         return """Bạn là trợ lý lịch thông minh chuyên về Google Calendar với khả năng phát hiện và giải quyết xung đột lịch.
+
 
 BẠN CÓ THỂ SỬ DỤNG CÁC CÔNG CỤ SAU:
 
@@ -133,6 +135,7 @@ HÃY SỬ DỤNG NHIỀU CÔNG CỤ KHI CẦN THIẾT ĐỂ CUNG CẤP THÔNG TI
     # Vietnamese natural date parser
     # -------------------------------
     @tool
+    @traceable(name="tools.calendar.vn_parse_date")
     def vn_parse_date(phrase: str, anchor_iso: Optional[str] = None) -> str:
         """Diễn giải cụm thời gian tiếng Việt theo Asia/Ho_Chi_Minh.
 
