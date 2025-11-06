@@ -1,16 +1,15 @@
 """
 Calendar Agent for Google Calendar management
 """
-
+from datetime import datetime, timedelta
+from dateutil import parser
 from typing import List, Any, Optional, Tuple
 from langchain_openai import ChatOpenAI
 from .base_agent import BaseAgent
 from services.mcp_service import MCPService
 import pytz
-from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from langsmith import traceable
-
 class CalendarAgent(BaseAgent):
     """Specialized agent for Google Calendar operations."""
     
@@ -25,7 +24,7 @@ class CalendarAgent(BaseAgent):
         if self._calendar_tools is None:
             self._calendar_tools = await self.mcp_service.get_calendar_tools()
             # Append local utilities
-            self._calendar_tools = self._calendar_tools + [self.vn_parse_date]
+            self._calendar_tools = self._calendar_tools + [self._create_vn_parse_date_tool()]
     
     def get_system_prompt(self) -> str:
         return """Bạn là trợ lý lịch thông minh chuyên về Google Calendar với khả năng phát hiện và giải quyết xung đột lịch.
@@ -61,8 +60,8 @@ BẠN CÓ THỂ SỬ DỤNG CÁC CÔNG CỤ SAU:
    - suggest_optimal_time: Đề xuất thời gian tối ưu (activity_type, duration_minutes, preferred_date, days_ahead)
 
 7. CÔNG CỤ HỖ TRỢ:
-   - vn_parse_date: Diễn giải thời gian tiếng Việt (phrase: "ngày mai", "thứ 6 tuần này", etc.)
-
+   - parse_natural_date: Diễn giải thời gian tiếng Việt (phrase: "ngày mai", "thứ 6 tuần này", etc.)
+    - 
 QUY TRÌNH TẠO SỰ KIỆN MỚI:
 1. LUÔN kiểm tra xung đột trước khi tạo sự kiện mới bằng check_conflicts()
 2. Nếu có xung đột:
@@ -134,110 +133,73 @@ HÃY SỬ DỤNG NHIỀU CÔNG CỤ KHI CẦN THIẾT ĐỂ CUNG CẤP THÔNG TI
     # -------------------------------
     # Vietnamese natural date parser
     # -------------------------------
-    @tool
-    @traceable(name="tools.calendar.vn_parse_date")
-    def vn_parse_date(phrase: str, anchor_iso: Optional[str] = None) -> str:
-        """Diễn giải cụm thời gian tiếng Việt theo Asia/Ho_Chi_Minh.
+    
+    def parse_time_with_llm(self, phrase: str) -> str:
+        """Sử dụng LLM để parse thời gian tiếng Việt thành ISO format."""
+        now = datetime.now(pytz.timezone("Asia/Ho_Chi_Minh"))
+        system_prompt = f"""Bạn là trình phân tích thời gian tiếng Việt.
+Nhiệm vụ: chuyển cụm thời gian thành ISO format.
+Ví dụ:
+- "ngày mai" -> "2025-11-02"
+- "cuối tuần" -> "2025-11-01..2025-11-02"
+- "2 ngày nữa" -> "2025-11-03"
+- "ngày này năm sau" -> "2026-11-01"
+- "tối nay" -> "2025-11-01T19:00:00..2025-11-01T23:59:59"
+- thời gian làm mốc là {now}
+Trả về kết quả là chuỗi ISO format, không có giải thích thêm."""
 
-        Input:
-        - phrase: ví dụ 'Thứ 6 tuần này', 'ngày mai', 'ngày này tuần sau', 'tuần này', 'tuần sau', 'cuối tuần', '21h-6h sáng mai'
-        - anchor_iso (optional): ISO datetime làm mốc. Nếu không có, dùng current time VN.
+        result = self.model.invoke([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": phrase}
+        ])
+        return result.content.strip()
 
-        Output:
-        - Nếu là 1 ngày: trả 'YYYY-MM-DD'
-        - Nếu là khoảng tuần/cuối tuần: trả 'YYYY-MM-DD..YYYY-MM-DD' (start..end)
-        - Nếu là khoảng thời gian trong ngày: trả 'YYYY-MM-DDTHH:MM:SS..YYYY-MM-DDTHH:MM:SS'
-        """
-        vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-        now_vn = datetime.now(vn_tz) if anchor_iso is None else datetime.fromisoformat(anchor_iso).astimezone(vn_tz)
+    def fallback_date_parser(self, text: str):
+        """Parser đơn giản cho một số cụm từ thường gặp."""
+        text = text.lower().strip()
+        today = datetime.now(pytz.timezone("Asia/Ho_Chi_Minh"))
 
-        # Anchor date (strip time)
-        anchor_date = now_vn.date()
+        if "ngày mai" in text:
+            return (today + timedelta(days=1)).isoformat()
+        elif "ngày kia" in text:
+            return (today + timedelta(days=2)).isoformat()
+        elif "hôm qua" in text:
+            return (today - timedelta(days=1)).isoformat()
+        elif "năm sau" in text:
+            return today.replace(year=today.year + 1).isoformat()
+        else:
+            # Nếu vẫn không hiểu, nhờ LLM đoán
+            return self.parse_time_with_llm(text)
 
-        def week_bounds(d: datetime.date) -> Tuple[datetime.date, datetime.date]:
-            # ISO week: Monday=0 .. Sunday=6
-            weekday = d.weekday()
-            start = d - timedelta(days=weekday)  # Monday
-            end = start + timedelta(days=6)      # Sunday
-            return start, end
+    def parse_natural_date(self, text: str):
+        """Parse thời gian tự nhiên, thử dateutil.parser trước, nếu fail thì dùng fallback."""
+        try:
+            parsed = parser.parse(text)
+            # Chuyển đổi sang ISO format nếu là datetime
+            if isinstance(parsed, datetime):
+                # Đảm bảo có timezone
+                if parsed.tzinfo is None:
+                    parsed = pytz.timezone("Asia/Ho_Chi_Minh").localize(parsed)
+                return parsed.isoformat()
+            return str(parsed)
+        except Exception:
+            return self.fallback_date_parser(text)
 
-        p = phrase.strip().lower()
-
-        # Handle time ranges like "21h-6h sáng mai"
-        import re
+    def _create_vn_parse_date_tool(self):
+        """Create the vn_parse_date tool."""
         
-        # Pattern for time ranges: "Xh-Yh sáng mai" or "Xh-Yh mai"
-        time_range_pattern = r'(\d{1,2})h-(\d{1,2})h\s*(sáng\s+)?mai'
-        match = re.search(time_range_pattern, p)
-        if match:
-            start_hour = int(match.group(1))
-            end_hour = int(match.group(2))
-            is_next_day = match.group(3) is not None  # "sáng mai" means next day
-            
-            if is_next_day:
-                # "21h-6h sáng mai" means 21h today to 6h tomorrow
-                start_date = anchor_date
-                end_date = anchor_date + timedelta(days=1)
-            else:
-                # "21h-6h mai" means 21h tomorrow to 6h day after tomorrow
-                start_date = anchor_date + timedelta(days=1)
-                end_date = anchor_date + timedelta(days=2)
-            
-            start_datetime = vn_tz.localize(datetime.combine(start_date, datetime.min.time().replace(hour=start_hour)))
-            end_datetime = vn_tz.localize(datetime.combine(end_date, datetime.min.time().replace(hour=end_hour)))
-            
-            return f"{start_datetime.isoformat()}..{end_datetime.isoformat()}"
+        @tool
+        @traceable(name="tools.calendar.vn_parse_date")
+        def vn_parse_date(phrase: str) -> str:
+            """Diễn giải cụm thời gian tiếng Việt thành ISO format.
 
-        # Simple phrases
-        if p == "ngày mai":
-            return (anchor_date + timedelta(days=1)).isoformat()
+            Input:
+            - phrase: ví dụ 'ngày mai', 'thứ 6 tuần này', 'cuối tuần', '2 ngày nữa', 'tối nay'
 
-        if p == "ngày này tuần sau":
-            return (anchor_date + timedelta(days=7)).isoformat()
-
-        if p in ["tuần này", "trong tuần này"]:
-            start, end = week_bounds(anchor_date)
-            return f"{start.isoformat()}..{end.isoformat()}"
-
-        if p in ["tuần sau", "tuần tới"]:
-            start, end = week_bounds(anchor_date + timedelta(days=7))
-            return f"{start.isoformat()}..{end.isoformat()}"
-
-        if p in ["cuối tuần", "weekend"]:
-            start, end = week_bounds(anchor_date)
-            sat = start + timedelta(days=5)
-            sun = start + timedelta(days=6)
-            return f"{sat.isoformat()}..{sun.isoformat()}"
-
-        # Weekday mapping for Vietnamese
-        weekday_map = {
-            "thứ 2": 0,
-            "thứ hai": 0,
-            "thứ 3": 1,
-            "thứ ba": 1,
-            "thứ 4": 2,
-            "thứ tư": 2,
-            "thứ 5": 3,
-            "thứ năm": 3,
-            "thứ 6": 4,
-            "thứ sáu": 4,
-            "thứ 7": 5,
-            "thứ bảy": 5,
-            "chủ nhật": 6,
-        }
-
-        # Patterns: "thứ X tuần này" or "thứ X tuần sau"
-        # Normalize spaces
-        p_norm = " ".join(p.split())
-        for key, target_idx in weekday_map.items():
-            if f"{key} tuần này" == p_norm:
-                start, _ = week_bounds(anchor_date)
-                date_val = start + timedelta(days=target_idx)
-                return date_val.isoformat()
-            if f"{key} tuần sau" == p_norm:
-                start, _ = week_bounds(anchor_date + timedelta(days=7))
-                date_val = start + timedelta(days=target_idx)
-                return date_val.isoformat()
-
-        # Fallback: return anchor date to avoid hallucination
-        return anchor_date.isoformat()
+            Output:
+            - Nếu là 1 ngày: trả 'YYYY-MM-DD' hoặc 'YYYY-MM-DDTHH:MM:SS+07:00'
+            - Nếu là khoảng thời gian: trả 'YYYY-MM-DD..YYYY-MM-DD' hoặc 'YYYY-MM-DDTHH:MM:SS..YYYY-MM-DDTHH:MM:SS'
+            """
+            return self.parse_natural_date(phrase)
+        
+        return vn_parse_date
