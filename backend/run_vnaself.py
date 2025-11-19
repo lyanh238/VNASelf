@@ -12,6 +12,13 @@ import threading
 from pathlib import Path
 import webbrowser
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load .env file from project root
+# override=True ensures .env file values take precedence over system environment variables
+project_root = Path(__file__).parent.parent
+env_path = project_root / '.env'
+load_dotenv(dotenv_path=env_path, override=True)
 
 def print_banner():
     """In banner khởi động"""

@@ -4,6 +4,7 @@ import { Bitcoin } from 'lucide-react';
 import { CalendarDays } from 'lucide-react';
 import { Brain } from 'lucide-react';
 import { FileText } from 'lucide-react';
+import { ScanLine } from 'lucide-react';
 
 const AgentList = ({ onAgentSelect }) => {
   // Available agents from the backend system
@@ -39,6 +40,14 @@ const AgentList = ({ onAgentSelect }) => {
       icon: <FileText size={24} />,
       capabilities: ['Note Taking', 'Auto Classification', 'Quick Retrieval'],
       color: '#3b82f6'
+    },
+    {
+      id: 'ocr',
+      name: 'OCR Agent',
+      description: 'Extract text from PDFs and images, search documents semantically',
+      icon: <ScanLine size={24} />,
+      capabilities: ['Document OCR', 'Text Extraction', 'Semantic Search'],
+      color: '#8b5cf6'
     }
   ]
 

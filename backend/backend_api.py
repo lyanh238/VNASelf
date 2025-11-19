@@ -6,14 +6,25 @@ import asyncio
 import json
 import uuid
 import os
+import traceback
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import uvicorn
+from dotenv import load_dotenv
+import shutil
+import aiofiles
+
+# Load .env file from project root before importing other modules
+# override=True ensures .env file values take precedence over system environment variables
+project_root = Path(__file__).parent.parent
+env_path = project_root / '.env'
+load_dotenv(dotenv_path=env_path, override=True)
 
 from contextlib import asynccontextmanager
 from core import MultiAgentSystem
@@ -22,17 +33,7 @@ from services.conversation_service import ConversationService
 from services.conversation_title_service import ConversationTitleService
 from services.payment_history_service import PaymentHistoryService
 
-# Initialize FastAPI app
-app = FastAPI(title="VNASelf API", version="1.0.0")
-
-# CORS middleware for React frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # React dev servers
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Note: FastAPI app will be created after lifespan function is defined
 
 # Global multi-agent system instance
 multi_agent_system = None
@@ -42,6 +43,14 @@ payment_history_service: Optional[PaymentHistoryService] = None
 
 # Account file path
 ACCOUNT_FILE_PATH = "account.json"
+
+# Upload directory
+UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+# OCR output directory
+OUTPUT_DIR = Path(__file__).parent / "output"
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Pydantic models
 class ChatMessage(BaseModel):
@@ -213,7 +222,18 @@ async def lifespan(app: FastAPI):
         await conversation_service.close()
     # if conversation_title_service:
     #     await conversation_title_service.close()
-app = FastAPI(lifespan=lifespan)
+
+# Initialize FastAPI app with lifespan
+app = FastAPI(title="VNASelf API", version="1.0.0", lifespan=lifespan)
+
+# CORS middleware for React frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # React dev servers
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
@@ -283,6 +303,9 @@ async def chat_endpoint(message: ChatMessage):
         )
         
     except Exception as e:
+        error_traceback = traceback.format_exc()
+        print(f"[ERROR] Error processing message: {str(e)}")
+        print(f"[ERROR] Traceback:\n{error_traceback}")
         raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
 
 @app.get("/api/chat/history/{thread_id}", response_model=ChatHistory)
@@ -790,6 +813,185 @@ async def delete_account(email: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting account: {str(e)}")
 
+@app.post("/api/upload")
+@traceable(name="api.upload_file")
+async def upload_file(file: UploadFile = File(...), user_id: Optional[str] = Form(None)):
+    """Upload a file (image or PDF) for OCR processing."""
+    try:
+        # Validate file type
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+        file_ext = Path(file.filename).suffix.lower()
+        
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File type not supported. Allowed types: {', '.join(allowed_extensions)}"
+            )
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}{file_ext}"
+        file_path = UPLOAD_DIR / safe_filename
+        
+        # Save uploaded file
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        # Return file path for OCR processing
+        return JSONResponse({
+            "success": True,
+            "file_path": str(file_path),
+            "filename": file.filename,
+            "file_type": "pdf" if file_ext == ".pdf" else "image",
+            "message": "File uploaded successfully"
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        print(f"[ERROR] Error uploading file: {str(e)}")
+        print(f"[ERROR] Traceback:\n{error_traceback}")
+        raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+
+@app.get("/api/ocr/markdown/{filename}")
+async def get_ocr_markdown(filename: str):
+    """Download the generated markdown file after OCR processing."""
+    safe_name = Path(filename).name
+    file_path = OUTPUT_DIR / safe_name
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Markdown file not found")
+    
+    return FileResponse(file_path, media_type="text/markdown", filename=safe_name)
+
+@app.post("/api/upload-and-process")
+@traceable(name="api.upload_and_process")
+async def upload_and_process(
+    file: UploadFile = File(...), 
+    user_id: Optional[str] = Form(None),
+    thread_id: Optional[str] = Form(None)
+):
+    """Upload a file and immediately process it with OCR."""
+    try:
+        if not multi_agent_system:
+            raise HTTPException(status_code=500, detail="Multi-agent system not initialized")
+        
+        # Validate file type
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+        file_ext = Path(file.filename).suffix.lower()
+        
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File type not supported. Allowed types: {', '.join(allowed_extensions)}"
+            )
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}{file_ext}"
+        file_path = UPLOAD_DIR / safe_filename
+        
+        # Save uploaded file
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        # Determine file type
+        file_type = "pdf" if file_ext == ".pdf" else "image"
+        
+        # Generate thread_id if not provided
+        current_thread_id = thread_id or str(uuid.uuid4())
+        current_user_id = user_id or "default_user"
+        
+        # Process directly with OCR agent
+        ocr_agent = multi_agent_system.ocr_agent
+        if not ocr_agent:
+            raise HTTPException(status_code=500, detail="OCR agent not available")
+        
+        # Ensure OCR agent is initialized
+        if not ocr_agent._tools:
+            await ocr_agent.initialize()
+        
+        # Get the process_document tool
+        tools = ocr_agent.get_tools()
+        process_tool = None
+        for tool in tools:
+            # Check if this is the process_document tool by checking name attribute
+            tool_name = getattr(tool, 'name', '') or str(tool)
+            if 'process_document' in tool_name.lower():
+                process_tool = tool
+                break
+        
+        if not process_tool:
+            # Fallback: use supervisor to route
+            process_message = f"Xử lý file OCR: {str(file_path)} (loại: {file_type})"
+            result = await multi_agent_system.process_message(
+                process_message,
+                thread_id=current_thread_id,
+                user_id=current_user_id
+            )
+        else:
+            # Call tool directly - tools accept dict with parameter names
+            try:
+                result = await process_tool.ainvoke({
+                    "file_path": str(file_path),
+                    "file_type": file_type
+                })
+            except Exception as e:
+                # If direct call fails, try with supervisor
+                print(f"[WARNING] Direct tool call failed: {e}, using supervisor routing")
+                process_message = f"Xử lý file OCR: {str(file_path)} (loại: {file_type})"
+                result = await multi_agent_system.process_message(
+                    process_message,
+                    thread_id=current_thread_id,
+                    user_id=current_user_id
+                )
+        
+        # Save user message about file upload
+        if conversation_service:
+            existing_conversation = await conversation_service.get_conversation_by_thread_id(current_thread_id)
+            
+            if not existing_conversation:
+                title = f"OCR: {file.filename}"
+                await conversation_service.create_conversation(
+                    thread_id=current_thread_id,
+                    user_id=current_user_id,
+                    title=title
+                )
+        
+        # Extract content from result (remove agent name prefix if present)
+        result_content = result
+        if isinstance(result, str) and result.startswith("[") and "]" in result:
+            result_content = result.split("]", 1)[1].strip()
+        
+        markdown_filename = f"{Path(file_path).stem}.md"
+        markdown_path = OUTPUT_DIR / markdown_filename
+        markdown_exists = markdown_path.exists()
+        markdown_url = f"/api/ocr/markdown/{markdown_filename}" if markdown_exists else None
+        
+        return JSONResponse({
+            "success": True,
+            "file_path": str(file_path),
+            "filename": file.filename,
+            "file_type": file_type,
+            "result": result_content,
+            "thread_id": current_thread_id,
+            "message": "File processed successfully",
+            "markdown_file": markdown_filename if markdown_exists else None,
+            "markdown_url": markdown_url
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        print(f"[ERROR] Error processing uploaded file: {str(e)}")
+        print(f"[ERROR] Traceback:\n{error_traceback}")
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
 @app.websocket("/ws/{client_id}")
 @traceable(name="api.websocket_chat")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -841,11 +1043,15 @@ static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend"
 app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 if __name__ == "__main__":
+    import sys
+    # Disable reload on Windows to avoid multiprocessing spawn issues
+    # On Windows, reload can cause KeyboardInterrupt during process spawning
+    use_reload = sys.platform != "win32"
     uvicorn.run(
         "backend_api:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,
+        reload=use_reload,
         log_level="info"
     )
 

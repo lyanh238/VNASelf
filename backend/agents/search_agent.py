@@ -20,10 +20,10 @@ class SearchAgent(BaseAgent):
         """Initialize the search agent with Tavily tool."""
         try:
             from tavily import TavilyClient
-            import os
+            from config import Config
             
             # Check for API key
-            api_key = os.getenv('TAVILY_API_KEY')
+            api_key = Config.TAVILY_API_KEY
             if not api_key:
                 print("[WARNING] TAVILY_API_KEY not found. Search Agent will work in mock mode.")
                 self._tools = [self._create_mock_search_tool()]

@@ -12,7 +12,6 @@ from datetime import datetime
 
 from config import Config
 from models.chat_history import Logs, Base
-import dotenv
 
 class LogsService:
     """Simple service for managing conversation logs in Neon Database."""

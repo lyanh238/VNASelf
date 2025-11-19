@@ -7,12 +7,12 @@ from langchain_openai import ChatOpenAI
 from .base_agent import BaseAgent
 from langchain_core.tools import tool
 from datetime import datetime
-import json
 from services.payment_history_service import PaymentHistoryService
 import pytz
 import json
 from langsmith import traceable
-
+import asyncio
+import re
 TIMEZONE = 'Asia/Ho_Chi_Minh'
 VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
 def get_now_vietnam():
@@ -124,9 +124,6 @@ def add_multiple_expenses(
         Dict chứa kết quả thêm chi tiêu
     """
     try:
-        import re
-        import asyncio
-        
         # Validate date format
         try:
             expense_date = datetime.strptime(date, "%Y-%m-%d")
@@ -178,7 +175,6 @@ def add_multiple_expenses(
             # Add expense to database
             try:
                 # Use asyncio.run in a thread to avoid event loop conflicts
-                import asyncio
                 import concurrent.futures
                 
                 def run_async():
