@@ -10,18 +10,20 @@ from .calendar_agent import CalendarAgent
 from .finance_agent import FinanceAgent
 from .search_agent import SearchAgent
 from .note_agent import NoteAgent
+from .ocr_agent import OCRAgent
 
 
 class SupervisorAgent(BaseAgent):
     """Supervisor agent that routes requests to appropriate specialized agents."""
     
-    def __init__(self, model: ChatOpenAI, calendar_agent: CalendarAgent, finance_agent: FinanceAgent, search_agent: SearchAgent, note_agent: NoteAgent):
+    def __init__(self, model: ChatOpenAI, calendar_agent: CalendarAgent, finance_agent: FinanceAgent, search_agent: SearchAgent, note_agent: NoteAgent, ocr_agent: OCRAgent):
         super().__init__(model)
         self.name = "Supervisor Agent"
         self.calendar_agent = calendar_agent
         self.finance_agent = finance_agent
         self.search_agent = search_agent
         self.note_agent = note_agent
+        self.ocr_agent = ocr_agent
         self._all_tools = None
     
     async def initialize(self):
@@ -30,11 +32,13 @@ class SupervisorAgent(BaseAgent):
         await self.finance_agent.initialize()
         await self.search_agent.initialize()
         await self.note_agent.initialize()
+        await self.ocr_agent.initialize()
         self._all_tools = (
             self.calendar_agent.get_tools()
             + self.finance_agent.get_tools()
             + self.search_agent.get_tools()
             + self.note_agent.get_tools()
+            + self.ocr_agent.get_tools()
         )
     
     def get_system_prompt(self) -> str:
@@ -82,6 +86,17 @@ QUY TẮC NGÔN NGỮ:
  # 4. Ghi chú (Notes):
    - record_note: Ghi một ghi chú mới (content, category?, user_id?, thread_id?, request_context?)
    - list_notes: Liệt kê ghi chú (user_id?, limit=20, category?)
+
+# 5. OCR và Xử lý Tài liệu (OCR tools):
+   - process_document: Xử lý file PDF hoặc ảnh, trích xuất văn bản bằng OCR và lưu vào vector database (file_path, file_type="auto")
+   - search_document: Tìm kiếm thông tin trong các tài liệu đã xử lý bằng tìm kiếm ngữ nghĩa (query, max_results=3)
+   - list_documents: Liệt kê tất cả tài liệu đã được xử lý
+   - Sử dụng khi người dùng muốn:
+     * Xử lý PDF hoặc ảnh để trích xuất văn bản
+     * Tìm kiếm thông tin trong tài liệu đã tải
+     * Quản lý danh sách tài liệu
+   - Hỗ trợ định dạng: PDF, JPG, PNG, BMP, TIFF
+   - Văn bản được lưu vào vector database để tìm kiếm ngữ nghĩa
 
  Lưu ý quan trọng:
 - Thời gian phải theo định dạng ISO: 'YYYY-MM-DDTHH:MM:SS' (VD: '2025-10-20T14:00:00')

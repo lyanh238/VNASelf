@@ -12,7 +12,6 @@ import json
 
 from config import Config
 from models.conversation import Conversation, Base
-import dotenv
 
 class ConversationService:
     """Service for managing conversation metadata in Neon Database."""

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import FinanceChart from './FinanceChart'
+import { Upload, X } from 'lucide-react'
 
 const AgentChat = ({ agent, onBack }) => {
   const [messages, setMessages] = useState([])
@@ -10,8 +11,11 @@ const AgentChat = ({ agent, onBack }) => {
   const [currentThreadId, setCurrentThreadId] = useState(null)
   const [currentLanguage, setCurrentLanguage] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [uploadedFile, setUploadedFile] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const fileInputRef = useRef(null)
   const { user } = useAuth()
 
   // Agent-specific welcome messages and suggestions
@@ -54,6 +58,16 @@ const AgentChat = ({ agent, onBack }) => {
         'Remember to call mom this weekend',
         'Save this idea: build a habit tracker',
         'List my recent notes in Work category'
+      ]
+    },
+    ocr: {
+      title: 'OCR Agent',
+      subtitle: 'Extract and search text from documents and images',
+      suggestions: [
+        'Process a PDF document',
+        'Extract text from an image',
+        'Search in processed documents',
+        'List all processed documents'
       ]
     }
   }
@@ -187,6 +201,86 @@ const AgentChat = ({ agent, onBack }) => {
     sendMessage(suggestion)
   }
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setUploadedFile(file)
+    }
+  }
+
+  const handleFileUpload = async () => {
+    if (!uploadedFile) return
+
+    setIsUploading(true)
+    setShowWelcome(false)
+
+    // Show user message about file upload
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: `Đang xử lý file: ${uploadedFile.name}`,
+      timestamp: new Date().toISOString()
+    }
+    setMessages(prev => [...prev, userMessage])
+
+    try {
+      const formData = new FormData()
+      formData.append('file', uploadedFile)
+      formData.append('user_id', user?.id || user?.email || 'default_user')
+      if (currentThreadId) {
+        formData.append('thread_id', currentThreadId)
+      }
+
+      const response = await fetch('/api/upload-and-process', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Update thread ID if this is a new conversation
+        if (data.thread_id && !currentThreadId) {
+          setCurrentThreadId(data.thread_id)
+        }
+
+        const assistantMessage = {
+          id: Date.now() + 1,
+          type: 'assistant',
+          content: data.result || 'File processed successfully',
+          timestamp: new Date().toISOString()
+        }
+
+        setMessages(prev => [...prev, assistantMessage])
+        setUploadedFile(null)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
+        throw new Error(errorData.detail || 'Failed to process file')
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        content: `Lỗi khi xử lý file: ${error.message}`,
+        timestamp: new Date().toISOString()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const formatMessage = (content) => {
     if (!content || typeof content !== 'string') return ''
     return content
@@ -254,9 +348,73 @@ const AgentChat = ({ agent, onBack }) => {
           </div>
 
           <div className="chat-input-container">
+            {uploadedFile && (
+              <div style={{
+                padding: '8px 12px',
+                marginBottom: '8px',
+                background: 'var(--bg-secondary)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Upload size={16} />
+                  <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                    {uploadedFile.name}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleFileUpload}
+                    disabled={isUploading}
+                    style={{
+                      padding: '4px 12px',
+                      background: agent.color,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: isUploading ? 'not-allowed' : 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    {isUploading ? 'Đang xử lý...' : 'Xử lý OCR'}
+                  </button>
+                  <button
+                    onClick={handleRemoveFile}
+                    style={{
+                      padding: '4px 8px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="chat-input">
               <div className="input-controls-left">
-                <button className="input-btn">+</button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+                <button 
+                  className="input-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload file for OCR"
+                >
+                  <Upload size={18} />
+                </button>
               </div>
               <input
                 ref={inputRef}
@@ -266,12 +424,13 @@ const AgentChat = ({ agent, onBack }) => {
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 className="chat-input-field"
+                disabled={isUploading}
               />
               <div className="input-controls-right">
                 <button 
                   className="send-btn" 
                   onClick={() => sendMessage()}
-                  disabled={!inputValue.trim()}
+                  disabled={!inputValue.trim() || isUploading}
                 >
                   →
                 </button>
@@ -375,9 +534,74 @@ const AgentChat = ({ agent, onBack }) => {
 
           {/* Chat Input */}
           <div className="chat-input-container">
+            {uploadedFile && (
+              <div style={{
+                padding: '8px 12px',
+                marginBottom: '8px',
+                background: 'var(--bg-secondary)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Upload size={16} />
+                  <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                    {uploadedFile.name}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleFileUpload}
+                    disabled={isUploading || isLoading}
+                    style={{
+                      padding: '4px 12px',
+                      background: agent.color,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: (isUploading || isLoading) ? 'not-allowed' : 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    {isUploading ? 'Đang xử lý...' : 'Xử lý OCR'}
+                  </button>
+                  <button
+                    onClick={handleRemoveFile}
+                    style={{
+                      padding: '4px 8px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="chat-input">
               <div className="input-controls-left">
-                <button className="input-btn">+</button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+                <button 
+                  className="input-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload file for OCR"
+                  disabled={isLoading || isUploading}
+                >
+                  <Upload size={18} />
+                </button>
               </div>
               <input
                 ref={inputRef}
@@ -387,7 +611,7 @@ const AgentChat = ({ agent, onBack }) => {
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 className="chat-input-field"
-                disabled={isLoading}
+                disabled={isLoading || isUploading}
               />
                <div className="input-controls-right">
                  <button 

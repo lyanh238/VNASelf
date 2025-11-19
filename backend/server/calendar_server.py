@@ -9,14 +9,12 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-
 # If modifying these scopes, delete the token.pickle file
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Initialize FastMCP server
 mcp = FastMCP("google_calendar")
-
 # Timezone setting for Vietnam
 TIMEZONE = 'Asia/Ho_Chi_Minh'
 VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")

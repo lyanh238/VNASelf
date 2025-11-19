@@ -7,10 +7,11 @@ from datetime import datetime
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langsmith import traceable
 
-from agents import CalendarAgent, SupervisorAgent, FinanceAgent, SearchAgent, NoteAgent
+from config import Config
+from agents import CalendarAgent, SupervisorAgent, FinanceAgent, SearchAgent, NoteAgent, OCRAgent
 from services import MCPService
 from services.chat_history_service import LogsService
 from services.conversation_service import ConversationService
@@ -26,7 +27,11 @@ class MultiAgentSystem:
 
     
     def __init__(self, model_name: str = "gpt-4o-mini"):
-        self.model = ChatOpenAI(model=model_name)
+        # Use API key from Config (loaded from .env file)
+        api_key = Config.OPENAI_API_KEY
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in .env file. Please set it in your .env file.")
+        self.model = ChatOpenAI(model=model_name, api_key=api_key)
         self.mcp_service = MCPService()
         self.logs_service = LogsService()
         self.conversation_service = ConversationService()
@@ -41,7 +46,8 @@ class MultiAgentSystem:
         self.finance_agent = FinanceAgent(self.model, self.payment_service)
         self.search_agent = SearchAgent(self.model)
         self.note_agent = NoteAgent(self.model, self.note_db_service)
-        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent, self.note_agent)
+        self.ocr_agent = OCRAgent(self.model)
+        self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent, self.note_agent, self.ocr_agent)
         
         # Note: Cross-agent context is automatically handled by LangGraph MessagesState
         # which stores all conversation history and makes it available to all agents
@@ -70,7 +76,7 @@ class MultiAgentSystem:
             return_exceptions=True  # Don't fail if one service fails
         )
         
-        # Initialize supervisor agent (which initializes calendar and finance agents)
+        # Initialize supervisor agent (which initializes all agents)
         await self.supervisor_agent.initialize()
         
         # Build the graph
@@ -94,10 +100,11 @@ class MultiAgentSystem:
             
             full_prompt = f"{system_prompt}\n\nCurrent time (Asia/Ho_Chi_Minh): {current_time}"
             
+            # Create system message and combine with existing messages
+            messages = [SystemMessage(content=full_prompt)] + state["messages"]
+            
             return {
-                "messages": [supervisor_model.invoke([
-                    {"role": "system", "content": full_prompt}
-                ] + state["messages"])]
+                "messages": [supervisor_model.invoke(messages)]
             }
 
         # Wrap the supervisor node with a LangSmith span for visibility in traces
@@ -125,7 +132,11 @@ class MultiAgentSystem:
         
         # Update model if model_name is provided
         if model_name and model_name != self.model.model_name:
-            self.model = ChatOpenAI(model=model_name)
+            # Use API key from Config (loaded from .env file)
+            api_key = Config.OPENAI_API_KEY
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY not found in .env file. Please set it in your .env file.")
+            self.model = ChatOpenAI(model=model_name, api_key=api_key)
             # Re-initialize agents with new model
             await self.initialize()
         
@@ -233,6 +244,10 @@ class MultiAgentSystem:
                     elif any(note_tool in tool_name.lower() for note_tool in ['record_note', 'list_notes']):
                         agent_name = "Note Agent"
                         break
+                    # Check for OCR tools
+                    elif any(ocr_tool in tool_name.lower() for ocr_tool in ['process_document', 'search_document', 'list_documents']):
+                        agent_name = "OCR Agent"
+                        break
         
         # If no tool calls found, try to determine from response content
         if not tool_calls_found:
@@ -245,6 +260,8 @@ class MultiAgentSystem:
                 agent_name = "Search Agent"
             elif any(keyword in response_lower for keyword in ['ghi chú', 'note', 'recorded note', 'đã lưu ghi chú']):
                 agent_name = "Note Agent"
+            elif any(keyword in response_lower for keyword in ['ocr', 'tài liệu', 'document', 'pdf', 'trích xuất', 'xử lý file', 'tìm kiếm tài liệu']):
+                agent_name = "OCR Agent"
         
         # Format response with agent information
         formatted_response = f"[{agent_name}] {response}"

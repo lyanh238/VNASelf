@@ -11,6 +11,7 @@ import { MessageCirclePlus } from 'lucide-react';
 import { MessageSquarePlus } from 'lucide-react';
 import { Bot } from 'lucide-react';
 import { FileText } from 'lucide-react';
+import { ScanLine, Upload, X } from 'lucide-react';
 
 
 const ChatApp = () => {
@@ -33,8 +34,11 @@ const ChatApp = () => {
   const [showSearchOptions, setShowSearchOptions] = useState(false)
   const [isWebSearchMode, setIsWebSearchMode] = useState(false)
   const [selectedTool, setSelectedTool] = useState(null)
+  const [uploadedFile, setUploadedFile] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
   const inputRef = useRef(null)
   const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
   const { user, logout } = useAuth()
 
   // Close search options when clicking outside
@@ -340,6 +344,11 @@ const ChatApp = () => {
         sendMessage(`Tìm kiếm tài liệu: ${inputValue}`)
         setSelectedTool(null)
         setIsWebSearchMode(false)
+      } else if (selectedTool === 'ocr-process') {
+        // Send OCR processing request
+        sendMessage(`Xử lý OCR: ${inputValue}`)
+        setSelectedTool(null)
+        setIsWebSearchMode(false)
       } else {
         // Send normal message
         sendMessage(inputValue)
@@ -368,6 +377,8 @@ const ChatApp = () => {
       return "Nhập từ khóa tìm kiếm web..."
     } else if (selectedTool === 'document-search') {
       return "Nhập từ khóa tìm kiếm tài liệu..."
+    } else if (selectedTool === 'ocr-process') {
+      return "Nhập đường dẫn file PDF hoặc ảnh để xử lý OCR..."
     }
     return "How can I help you today?"
   }
@@ -377,6 +388,8 @@ const ChatApp = () => {
       return "Web Search"
     } else if (selectedTool === 'document-search') {
       return "Document Search"
+    } else if (selectedTool === 'ocr-process') {
+      return "OCR Processing"
     }
     return "Search"
   }
@@ -402,6 +415,95 @@ const ChatApp = () => {
     setCurrentView('main')
     setSelectedAgent(null)
     setCurrentConversation(null)
+    setUploadedFile(null)
+    setSelectedTool(null)
+    setIsWebSearchMode(false)
+  }
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setUploadedFile(file)
+      setSelectedTool('ocr-process')
+      setIsWebSearchMode(true)
+    }
+  }
+
+  const handleFileUpload = async () => {
+    if (!uploadedFile) return
+
+    setIsUploading(true)
+    setShowWelcome(false)
+
+    // Show user message about file upload
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: `Đang xử lý file: ${uploadedFile.name}`,
+      timestamp: new Date().toISOString()
+    }
+    setMessages(prev => [...prev, userMessage])
+
+    try {
+      const formData = new FormData()
+      formData.append('file', uploadedFile)
+      formData.append('user_id', user?.id || user?.email || 'default_user')
+      if (currentThreadId) {
+        formData.append('thread_id', currentThreadId)
+      }
+
+      const response = await fetch('/api/upload-and-process', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Update thread ID if this is a new conversation
+        if (data.thread_id && !currentThreadId) {
+          setCurrentThreadId(data.thread_id)
+        }
+
+        const assistantMessage = {
+          id: Date.now() + 1,
+          type: 'assistant',
+          content: data.result || 'File processed successfully',
+          timestamp: new Date().toISOString()
+        }
+
+        setMessages(prev => [...prev, assistantMessage])
+        setUploadedFile(null)
+        setSelectedTool(null)
+        setIsWebSearchMode(false)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
+        throw new Error(errorData.detail || 'Failed to process file')
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        content: `Lỗi khi xử lý file: ${error.message}`,
+        timestamp: new Date().toISOString()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null)
+    setSelectedTool(null)
+    setIsWebSearchMode(false)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const handleConversationSelect = async (conversation) => {
@@ -599,8 +701,12 @@ const ChatApp = () => {
                         <span>Web Search</span>
                       </div>
                       <div className="search-option" onClick={() => handleToolSelect('document-search')}>
-                      <FileText size={15} strokeWidth={2} />
+                        <FileText size={15} strokeWidth={2} />
                         <span>Document Search</span>
+                      </div>
+                      <div className="search-option" onClick={() => handleToolSelect('ocr-process')}>
+                        <ScanLine size={15} strokeWidth={2} />
+                        <span>OCR Processing</span>
                       </div>
                     </div>
                   </div>
@@ -612,14 +718,16 @@ const ChatApp = () => {
                     onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                     className="chat-input-field"
+                    disabled={isLoading || isUploading}
                   />
                   {isWebSearchMode && selectedTool && (
                     <div className="web-search-indicator-blue">
                       <span className="web-search-icon">
                         {selectedTool === 'web-search' ? '🌐' : 
-                         
-                          selectedTool === "document-search" ? (
+                         selectedTool === "document-search" ? (
                             <FileText size={15} strokeWidth={2} />
+                          ) : selectedTool === "ocr-process" ? (
+                            <ScanLine size={15} strokeWidth={2} />
                           ) : (
                             <FileText size={15} strokeWidth={2} />
                           )
@@ -648,7 +756,7 @@ const ChatApp = () => {
                     <button 
                       className="send-btn" 
                       onClick={handleSendMessage}
-                      disabled={!inputValue.trim()}
+                      disabled={!inputValue.trim() || isLoading || isUploading}
                     >
                       →
                     </button>
@@ -746,12 +854,79 @@ const ChatApp = () => {
 
               {/* Chat Input */}
               <div className="chat-input-container">
+                {uploadedFile && (
+                  <div style={{
+                    padding: '8px 12px',
+                    marginBottom: '8px',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Upload size={16} />
+                      <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                        {uploadedFile.name}
+                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={handleFileUpload}
+                        disabled={isUploading || isLoading}
+                        style={{
+                          padding: '4px 12px',
+                          background: '#8b5cf6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: (isUploading || isLoading) ? 'not-allowed' : 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        {isUploading ? 'Đang xử lý...' : 'Xử lý OCR'}
+                      </button>
+                      <button
+                        onClick={handleRemoveFile}
+                        style={{
+                          padding: '4px 8px',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="chat-input">
                   <div className="input-controls-left">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
+                      onChange={handleFileSelect}
+                      style={{ display: 'none' }}
+                    />
+                    <button 
+                      className="input-btn" 
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Upload file for OCR"
+                      disabled={isLoading || isUploading}
+                    >
+                      <Upload size={18} />
+                    </button>
                     <button 
                       className="input-btn" 
                       onClick={() => setShowSearchOptions(!showSearchOptions)}
                       title="Tùy chọn tìm kiếm"
+                      disabled={isLoading || isUploading}
                     >
                       +
                     </button>
@@ -761,8 +936,12 @@ const ChatApp = () => {
                         <span>Web Search</span>
                       </div>
                       <div className="search-option" onClick={() => handleToolSelect('document-search')}>
-                        <FileText size= {15} strokeWidth={2}/>
+                        <FileText size={15} strokeWidth={2} />
                         <span>Document Search</span>
+                      </div>
+                      <div className="search-option" onClick={() => handleToolSelect('ocr-process')}>
+                        <ScanLine size={15} strokeWidth={2} />
+                        <span>OCR Processing</span>
                       </div>
                     </div>
                   </div>
@@ -774,14 +953,16 @@ const ChatApp = () => {
                     onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                     className="chat-input-field"
-                    disabled={isLoading}
+                    disabled={isLoading || isUploading}
                   />
                   {isWebSearchMode && selectedTool && (
                     <div className="web-search-indicator-blue">
                       <span className="web-search-icon">
                         {selectedTool === 'web-search' ? '🌐' : 
-                                                   selectedTool === "document-search" ? (
+                         selectedTool === "document-search" ? (
                             <FileText size={15} strokeWidth={2} />
+                          ) : selectedTool === "ocr-process" ? (
+                            <ScanLine size={15} strokeWidth={2} />
                           ) : (
                             <FileText size={15} strokeWidth={2} />
                           )}

@@ -13,7 +13,6 @@ from collections import defaultdict
 
 from config import Config
 from models.payment_history import PaymentHistory, Base
-import dotenv
 
 class PaymentHistoryService:
     """Service for managing payment history in Neon Database."""
