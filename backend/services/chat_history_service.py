@@ -11,7 +11,7 @@ import json
 from datetime import datetime
 
 from config import Config
-from models.chat_history import Logs, Base
+from history.chat_history import Logs, Base
 
 class LogsService:
     """Simple service for managing conversation logs in Neon Database."""

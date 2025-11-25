@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VNASelf - All-in-One Startup Script
+X23D8 - All-in-One Startup Script
 Tự động build frontend và chạy backend trong một file duy nhất
 """
 
@@ -23,7 +23,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 def print_banner():
     """In banner khởi động"""
     print("=" * 60)
-    print("VNASelf Multi-Agent System")
+    print("X23D8 Multi-Agent System")
     print("AI Assistant for Healthcare & Scheduling")
     print("=" * 60)
     print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -133,7 +133,7 @@ def build_frontend():
 
 def start_backend():
     """Start FastAPI backend"""
-    print("\n[INFO] Starting VNASelf Backend...")
+    print("\n[INFO] Starting X23D8 Backend...")
     
     try:
         # Import and run the backend
@@ -155,7 +155,7 @@ def start_backend():
         )
         
     except KeyboardInterrupt:
-        print("\n[INFO] Shutting down VNASelf...")
+        print("\n[INFO] Shutting down X23D8...")
         print("[OK] Goodbye!")
     except Exception as e:
         print(f"[ERROR] Backend error: {e}")
@@ -202,14 +202,14 @@ def main():
     open_browser()
     
     # Start backend
-    print("\n[SUCCESS] All checks passed! Starting VNASelf...")
+    print("\n[SUCCESS] All checks passed! Starting X23D8...")
     start_backend()
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n[INFO] Shutting down VNASelf...")
+        print("\n[INFO] Shutting down X23D8...")
         print("[OK] Goodbye!")
     except Exception as e:
         print(f"\n[ERROR] Unexpected error: {e}")

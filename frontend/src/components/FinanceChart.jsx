@@ -263,7 +263,7 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
             color: activeChart === 'spending' ? 'white' : 'var(--text-primary)'
           }}
         >
-          📊 Biểu đồ chi tiêu
+          📊 Expense Graph  
         </button>
         <button 
           className={`prompt-btn ${activeChart === 'forecast' ? 'active' : ''}`}
@@ -273,7 +273,7 @@ const FinanceChart = ({ userId, startDate, endDate }) => {
             color: activeChart === 'forecast' ? 'white' : 'var(--text-primary)'
           }}
         >
-          🔮 Dự báo 7 ngày tới
+          🔮 Prediction (next 7-days)
         </button>
       </div>
       

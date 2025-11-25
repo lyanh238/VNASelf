@@ -1,14 +1,53 @@
-# VNASelf Environment Variables
+# X23D8 Environment Variables
 # Copy this file to .env and fill in your values
+#
+# IMPORTANT: Never commit your .env file to version control!
 
-# Required: OpenAI API Key
+# ============================================
+# REQUIRED: OpenAI API Key
+# ============================================
+# Get your API key from: https://platform.openai.com/api-keys
 OPENAI_API_KEY=your-openai-api-key-here
 
-# Optional: OpenAI Model (default: gpt-4o-mini)
+# ============================================
+# OPTIONAL: Model Configuration
+# ============================================
+# Default: gpt-4o-mini (cheaper, faster)
+# Options: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
 OPENAI_MODEL=gpt-4o-mini
 
-# Optional: Neon Database URL for chat history
+# ============================================
+# OPTIONAL: Database Configuration
+# ============================================
+# Neon Database URL for chat history storage
+# Format: postgresql://username:password@host/database
+# Get free database at: https://neon.tech/
 NEON_DATABASE_URL=postgresql://username:password@host/database
 
-# Optional: Google Calendar API credentials
+# ============================================
+# OPTIONAL: Search API (Tavily)
+# ============================================
+# Get your API key from: https://tavily.com/
+# If not set, Search Agent will work in mock mode
+TAVILY_API_KEY=your-tavily-api-key-here
+
+# ============================================
+# OPTIONAL: Google Calendar Integration
+# ============================================
+# Path to your Google service account credentials JSON file
+# See docs/SETUP.md for setup instructions
 GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
+
+# ============================================
+# OPTIONAL: LangSmith (Monitoring & Debugging)
+# ============================================
+# Get your API key from: https://smith.langchain.com/
+# Used for tracing and debugging agent interactions
+LANGSMITH_API_KEY=your-langsmith-api-key-here
+LANGSMITH_PROJECT=x23d8
+
+# ============================================
+# OPTIONAL: Debug Settings
+# ============================================
+# Set to "true" to enable debug logging for MCP services
+DEBUG_MCP=false

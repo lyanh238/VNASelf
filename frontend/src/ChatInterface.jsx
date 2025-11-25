@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Upload } from 'lucide-react'
 import './ChatInterface.css'
 import FinanceChart from './components/FinanceChart'
 
@@ -13,8 +14,10 @@ const ChatInterface = ({
   const [inputValue, setInputValue] = useState(initialMessage || '')
   const [isLoading, setIsLoading] = useState(false)
   const [currentThreadId, setCurrentThreadId] = useState(threadId)
+  const [isUploading, setIsUploading] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -190,6 +193,95 @@ const ChatInterface = ({
     }
   }
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      uploadDocument(file)
+      e.target.value = ''
+    }
+  }
+
+  const uploadDocument = async (file) => {
+    setIsUploading(true)
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: `Đã tải lên file: ${file.name}`,
+      timestamp: new Date().toISOString()
+    }
+
+    const processingMessage = {
+      id: Date.now() + 1,
+      type: 'assistant',
+      content: 'Đang xử lý...',
+      timestamp: new Date().toISOString(),
+      isProcessing: true
+    }
+
+    setMessages(prev => [...prev, userMessage, processingMessage])
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('user_id', 'default_user')
+      if (currentThreadId) {
+        formData.append('thread_id', currentThreadId)
+      }
+
+      const response = await fetch('/api/upload-and-process', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
+        throw new Error(errorData.detail || 'Failed to process file')
+      }
+
+      const data = await response.json()
+
+      if (data.thread_id && !currentThreadId) {
+        setCurrentThreadId(data.thread_id)
+        onThreadChange(data.thread_id)
+      }
+
+      setMessages(prev => {
+        const filtered = prev.filter(msg => !msg.isProcessing)
+        const assistantMessage = {
+          id: Date.now() + 2,
+          type: 'assistant',
+          content: data.result || 'File processed successfully',
+          agent_name: 'OCR Agent',
+          timestamp: new Date().toISOString(),
+          ocrHtmlUrl: data.html_url || null,
+          ocrHtmlFilename: data.html_file || null
+        }
+        const updated = [...filtered, assistantMessage]
+        onChatHistoryChange(updated)
+        return updated
+      })
+    } catch (error) {
+      console.error('Error uploading document:', error)
+      setMessages(prev => {
+        const filtered = prev.filter(msg => !msg.isProcessing)
+        const errorMessage = {
+          id: Date.now() + 3,
+          type: 'assistant',
+          content: `Lỗi khi xử lý file: ${error.message}`,
+          agent_name: 'Error',
+          timestamp: new Date().toISOString()
+        }
+        return [...filtered, errorMessage]
+      })
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   // Ensure input stays at bottom when typing
   const handleInputChange = (e) => {
     setInputValue(e.target.value)
@@ -200,7 +292,14 @@ const ChatInterface = ({
   }
 
   const formatMessage = (content) => {
-    // Simple markdown-like formatting
+    if (!content || typeof content !== 'string') return ''
+    // Check if content already contains HTML tags (from OCR agent or other sources)
+    const hasHTML = /<[a-z][\s\S]*>/i.test(content)
+    if (hasHTML) {
+      // If content has HTML, return as-is (already formatted)
+      return content
+    }
+    // Otherwise, apply markdown formatting
     return content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -243,7 +342,7 @@ const ChatInterface = ({
             <div className="message-content">
               <div className="message-header">
             <span className="message-role">
-              {message.type === 'user' ? 'Bạn' : (message.agent_name || 'VNASelf')}
+              {message.type === 'user' ? 'Bạn' : (message.agent_name || 'X23D8')}
             </span>
                 <span className="message-time">
                   {new Date(message.timestamp).toLocaleTimeString()}
@@ -255,6 +354,22 @@ const ChatInterface = ({
                   __html: formatMessage(message.content) 
                 }}
               />
+              {message.ocrHtmlUrl && (
+                <div className="ocr-attachment" style={{ marginTop: '12px' }}>
+                  <a
+                    className="ocr-download-btn"
+                    href={message.ocrHtmlUrl}
+                    download={message.ocrHtmlFilename || 'ocr_result.html'}
+                    rel="noopener noreferrer"
+                  >
+                    <span className="download-btn-icon">⬇️</span>
+                    <span className="download-btn-text">Tải file HTML</span>
+                  </a>
+                  <div className="ocr-download-info">
+                    <small>File HTML chứa toàn bộ nội dung Docling. Bạn có thể mở trực tiếp trong trình duyệt.</small>
+                  </div>
+                </div>
+              )}
               {message.agent_name === 'Finance Agent' && shouldShowChart(message.content) && (
                 <div style={{ marginTop: '16px' }}>
                   <FinanceChart userId="X2D35" />
@@ -271,7 +386,7 @@ const ChatInterface = ({
             </div>
             <div className="message-content">
               <div className="message-header">
-                <span className="message-role">VNASelf</span>
+                <span className="message-role">X23D8</span>
               </div>
               <div className="message-text">
                 <div className="typing-indicator">
@@ -300,13 +415,28 @@ const ChatInterface = ({
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             className="chat-input-field"
-            disabled={isLoading}
+            disabled={isLoading || isUploading}
           />
           <div className="input-controls-right">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <button
+              className="input-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload file for OCR"
+              disabled={isLoading || isUploading}
+            >
+              <Upload size={18} />
+            </button>
             <button 
               className="send-btn" 
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={!inputValue.trim() || isLoading || isUploading}
             >
               →
             </button>

@@ -1,6 +1,6 @@
-# VNASelf Setup Guide
+# X23D8 Setup Guide
 
-This guide provides detailed instructions for setting up the VNASelf multi-agent system with React frontend on different platforms.
+This guide provides detailed instructions for setting up the X23D8 multi-agent system with React frontend on different platforms.
 
 ## Table of Contents
 
@@ -133,7 +133,7 @@ class Config:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click "New Project"
-3. Enter project name (e.g., "VNASelf Calendar")
+3. Enter project name (e.g., "X23D8 Calendar")
 4. Click "Create"
 
 ### Step 2: Enable Google Calendar API
@@ -147,8 +147,8 @@ class Config:
 1. Go to "APIs & Services" > "Credentials"
 2. Click "Create Credentials" > "Service Account"
 3. Fill in details:
-   - Name: `VNASelf-calendar`
-   - Description: `Service account for VNASelf calendar integration`
+   - Name: `X23D8-calendar`
+   - Description: `Service account for X23D8 calendar integration`
 4. Click "Create and Continue"
 5. Skip role assignment (click "Continue")
 6. Click "Done"

@@ -20,5 +20,27 @@
     "updated_at": "2025-10-29T15:35:28.578316+07:00",
     "timestamp": 1761726928578,
     "local_id": 2
+  },
+  {
+    "user_id": "default_user",
+    "thread_id": null,
+    "content": "[Monthly Expenses Over 50k - October 2025]\n1. 8,000,000 VNĐ - Chi phí đi    lịch - Ngày 30/10\n2. 120,000 VNĐ - Tiền mua sách - Ngày 30/10\n3. 100,000 VNĐ - Tiền ăn tối - Ngày 30/10\n4. 60,000 VNĐ - Tiền ăn sáng - Ngày 30/10\n5. 80,000 VNĐ - Tiền ăn tối - Ngày 30/10\n6. 60,000 VNĐ - Tiền giặt quần áo - Ngày 30/10\n7. 55,000 VNĐ - Tiền cầm văn phòng - Ngày 30/10\n8. 100,000 VNĐ - Tiền ăn trưa - Ngày 30/10\n9. 280,000 VNĐ - Tiền buffet - Ngày 30/10\n10. 80,000 VNĐ - Tiền taxi - Ngày 30/10\n11. 60,000 VNĐ - Tiền ăn tối - Ngày 27/10\n12. 100,000 VNĐ - Tiền ăn tối - Ngày 25/10\n13. 150,000 VNĐ - Tiền mua đồ điện tử - Ngày 26/10\n14. 120,000 VNĐ - Tiền mua sách - Ngày 22/10\n15. 90,000 VNĐ - Tiền xem phim + Bỏng ngô - Ngày 28/10\n16. 250,000 VNĐ - Tiền ăn tại nhà hàng một nơi - Ngày 27/10",
+    "category": "study",
+    "request_context": null,
+    "created_at": "2025-10-30T22:11:52.257133",
+    "updated_at": "2025-10-30T22:11:52.257133",
+    "timestamp": 1761837112257,
+    "local_id": 3
+  },
+  {
+    "user_id": "default_user",
+    "thread_id": null,
+    "content": "[Monthly Spending Summary]\nIn October 2025, you have spent a total of 7,874,000 VND.",
+    "category": "general",
+    "request_context": null,
+    "created_at": "2025-10-30T22:36:15.125722",
+    "updated_at": "2025-10-30T22:36:15.125722",
+    "timestamp": 1761838575125,
+    "local_id": 4
   }
 ]

@@ -112,25 +112,88 @@ class AccountData(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
+class AuthData(BaseModel):
+    email: str
+    password: str
+
 def load_accounts() -> List[Dict[str, Any]]:
     """Load accounts from account.json file"""
     try:
         if os.path.exists(ACCOUNT_FILE_PATH):
             with open(ACCOUNT_FILE_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                content = f.read().strip()
+                # Handle empty file
+                if not content:
+                    return []
+                # Try to parse JSON
+                accounts = json.loads(content)
+                # Ensure it's a list
+                if isinstance(accounts, list):
+                    return accounts
+                else:
+                    print(f"Warning: account.json is not a list, resetting to empty list")
+                    save_accounts([])
+                    return []
+        else:
+            # File doesn't exist, create it with empty list
+            save_accounts([])
+            return []
+    except json.JSONDecodeError as e:
+        print(f"Error parsing account.json (invalid JSON): {e}")
+        # Backup corrupted file and create new one
+        if os.path.exists(ACCOUNT_FILE_PATH):
+            backup_path = f"{ACCOUNT_FILE_PATH}.backup"
+            try:
+                os.rename(ACCOUNT_FILE_PATH, backup_path)
+                print(f"Backed up corrupted account.json to {backup_path}")
+            except:
+                pass
+        save_accounts([])
         return []
     except Exception as e:
         print(f"Error loading accounts: {e}")
+        # Try to create a fresh file
+        try:
+            save_accounts([])
+        except:
+            pass
         return []
 
 def save_accounts(accounts: List[Dict[str, Any]]) -> bool:
     """Save accounts to account.json file"""
     try:
-        with open(ACCOUNT_FILE_PATH, 'w', encoding='utf-8') as f:
+        # Ensure accounts is a list
+        if not isinstance(accounts, list):
+            print(f"Error: accounts must be a list, got {type(accounts)}")
+            return False
+        
+        # Ensure directory exists
+        account_dir = os.path.dirname(ACCOUNT_FILE_PATH) if os.path.dirname(ACCOUNT_FILE_PATH) else "."
+        if account_dir and not os.path.exists(account_dir):
+            os.makedirs(account_dir, exist_ok=True)
+        
+        # Write to file atomically (write to temp file then rename)
+        temp_path = f"{ACCOUNT_FILE_PATH}.tmp"
+        with open(temp_path, 'w', encoding='utf-8') as f:
             json.dump(accounts, f, indent=2, ensure_ascii=False)
+        
+        # Atomic rename
+        if os.path.exists(ACCOUNT_FILE_PATH):
+            os.replace(temp_path, ACCOUNT_FILE_PATH)
+        else:
+            os.rename(temp_path, ACCOUNT_FILE_PATH)
+        
         return True
     except Exception as e:
         print(f"Error saving accounts: {e}")
+        import traceback
+        traceback.print_exc()
+        # Clean up temp file if it exists
+        try:
+            if os.path.exists(f"{ACCOUNT_FILE_PATH}.tmp"):
+                os.remove(f"{ACCOUNT_FILE_PATH}.tmp")
+        except:
+            pass
         return False
 
 def add_or_update_account(account_data: AccountData) -> bool:
@@ -224,7 +287,7 @@ async def lifespan(app: FastAPI):
     #     await conversation_title_service.close()
 
 # Initialize FastAPI app with lifespan
-app = FastAPI(title="VNASelf API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="X23D8 API", version="1.0.0", lifespan=lifespan)
 
 # CORS middleware for React frontend
 app.add_middleware(
@@ -239,6 +302,16 @@ app.add_middleware(
 async def root():
     """Serve the React app."""
     return FileResponse("../frontend/dist/index.html")
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for Docker and monitoring."""
+    return {
+        "status": "healthy",
+        "service": "X23D8 API",
+        "multi_agent_system": multi_agent_system is not None,
+        "conversation_service": conversation_service is not None
+    }
 
 @app.post("/api/chat", response_model=ChatResponse)
 @traceable(name="api.chat_endpoint")
@@ -761,21 +834,41 @@ async def regenerate_conversation_title(user_id: str, thread_id: str):
 async def save_account(account_data: AccountData):
     """Save account data to account.json file"""
     try:
+        # Validate input
+        if not account_data.email or not account_data.name:
+            raise HTTPException(status_code=400, detail="Email and name are required")
+        
+        # Validate email format
+        import re
+        email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_pattern, account_data.email):
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
         success = add_or_update_account(account_data)
         if success:
             return {"success": True, "message": "Account saved successfully"}
         else:
-            raise HTTPException(status_code=500, detail="Failed to save account")
+            raise HTTPException(status_code=500, detail="Failed to save account to file")
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Error in save_account endpoint: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error saving account: {str(e)}")
 
 @app.get("/api/accounts")
 async def get_accounts():
-    """Get all accounts from account.json file"""
+    """Get all accounts from account.json file (for authentication - includes passwords)"""
     try:
         accounts = load_accounts()
+        # Return accounts with passwords for authentication purposes
+        # Note: In production, this should be more secure
         return {"success": True, "accounts": accounts}
     except Exception as e:
+        print(f"Error in get_accounts endpoint: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error loading accounts: {str(e)}")
 
 @app.get("/api/accounts/{email}")
@@ -785,6 +878,7 @@ async def get_account_by_email(email: str):
         accounts = load_accounts()
         account = next((acc for acc in accounts if acc.get('email') == email), None)
         if account:
+            # Return account with password for authentication
             return {"success": True, "account": account}
         else:
             raise HTTPException(status_code=404, detail="Account not found")
@@ -792,6 +886,31 @@ async def get_account_by_email(email: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading account: {str(e)}")
+
+@app.post("/api/accounts/authenticate")
+async def authenticate_account(auth_data: AuthData):
+    """Authenticate account by email and password"""
+    try:
+        accounts = load_accounts()
+        account = next((acc for acc in accounts if acc.get('email') == auth_data.email), None)
+        
+        if not account:
+            raise HTTPException(status_code=401, detail="Email or password is incorrect")
+        
+        # Compare password (plain text for now)
+        if account.get('password') != auth_data.password:
+            raise HTTPException(status_code=401, detail="Email or password is incorrect")
+        
+        # Return account without password
+        sanitized_account = {k: v for k, v in account.items() if k != 'password'}
+        return {"success": True, "account": sanitized_account}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in authenticate_account endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error authenticating account: {str(e)}")
 
 @app.delete("/api/accounts/{email}")
 async def delete_account(email: str):
@@ -819,7 +938,7 @@ async def upload_file(file: UploadFile = File(...), user_id: Optional[str] = For
     """Upload a file (image or PDF) for OCR processing."""
     try:
         # Validate file type
-        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp'}
         file_ext = Path(file.filename).suffix.lower()
         
         if file_ext not in allowed_extensions:
@@ -856,16 +975,16 @@ async def upload_file(file: UploadFile = File(...), user_id: Optional[str] = For
         raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
 
 
-@app.get("/api/ocr/markdown/{filename}")
-async def get_ocr_markdown(filename: str):
-    """Download the generated markdown file after OCR processing."""
+@app.get("/api/ocr/html/{filename}")
+async def get_ocr_html(filename: str):
+    """Download the generated HTML file after Docling processing."""
     safe_name = Path(filename).name
     file_path = OUTPUT_DIR / safe_name
     
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Markdown file not found")
+        raise HTTPException(status_code=404, detail="HTML file not found")
     
-    return FileResponse(file_path, media_type="text/markdown", filename=safe_name)
+    return FileResponse(file_path, media_type="text/html", filename=safe_name)
 
 @app.post("/api/upload-and-process")
 @traceable(name="api.upload_and_process")
@@ -880,7 +999,7 @@ async def upload_and_process(
             raise HTTPException(status_code=500, detail="Multi-agent system not initialized")
         
         # Validate file type
-        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp'}
         file_ext = Path(file.filename).suffix.lower()
         
         if file_ext not in allowed_extensions:
@@ -906,49 +1025,19 @@ async def upload_and_process(
         current_thread_id = thread_id or str(uuid.uuid4())
         current_user_id = user_id or "default_user"
         
-        # Process directly with OCR agent
-        ocr_agent = multi_agent_system.ocr_agent
-        if not ocr_agent:
-            raise HTTPException(status_code=500, detail="OCR agent not available")
-        
-        # Ensure OCR agent is initialized
-        if not ocr_agent._tools:
-            await ocr_agent.initialize()
-        
-        # Get the process_document tool
-        tools = ocr_agent.get_tools()
-        process_tool = None
-        for tool in tools:
-            # Check if this is the process_document tool by checking name attribute
-            tool_name = getattr(tool, 'name', '') or str(tool)
-            if 'process_document' in tool_name.lower():
-                process_tool = tool
-                break
-        
-        if not process_tool:
-            # Fallback: use supervisor to route
-            process_message = f"Xử lý file OCR: {str(file_path)} (loại: {file_type})"
-            result = await multi_agent_system.process_message(
-                process_message,
-                thread_id=current_thread_id,
-                user_id=current_user_id
-            )
+        # Use supervisor to route to OCR based on context
+        if file_ext == ".pdf":
+            # PDFs always go to OCR
+            process_message = f"Xử lý file PDF này bằng OCR: {str(file_path)}"
         else:
-            # Call tool directly - tools accept dict with parameter names
-            try:
-                result = await process_tool.ainvoke({
-                    "file_path": str(file_path),
-                    "file_type": file_type
-                })
-            except Exception as e:
-                # If direct call fails, try with supervisor
-                print(f"[WARNING] Direct tool call failed: {e}, using supervisor routing")
-                process_message = f"Xử lý file OCR: {str(file_path)} (loại: {file_type})"
-                result = await multi_agent_system.process_message(
-                    process_message,
-                    thread_id=current_thread_id,
-                    user_id=current_user_id
-                )
+            # Images: Use OCR for text extraction
+            process_message = f"Tôi đã tải lên một hình ảnh tại {str(file_path)}. Hãy xử lý nó bằng OCR."
+        
+        result = await multi_agent_system.process_message(
+            process_message,
+            thread_id=current_thread_id,
+            user_id=current_user_id
+        )
         
         # Save user message about file upload
         if conversation_service:
@@ -967,10 +1056,10 @@ async def upload_and_process(
         if isinstance(result, str) and result.startswith("[") and "]" in result:
             result_content = result.split("]", 1)[1].strip()
         
-        markdown_filename = f"{Path(file_path).stem}.md"
-        markdown_path = OUTPUT_DIR / markdown_filename
-        markdown_exists = markdown_path.exists()
-        markdown_url = f"/api/ocr/markdown/{markdown_filename}" if markdown_exists else None
+        html_filename = f"{Path(file_path).stem}.html"
+        html_path = OUTPUT_DIR / html_filename
+        html_exists = html_path.exists()
+        html_url = f"/api/ocr/html/{html_filename}" if html_exists else None
         
         return JSONResponse({
             "success": True,
@@ -980,8 +1069,8 @@ async def upload_and_process(
             "result": result_content,
             "thread_id": current_thread_id,
             "message": "File processed successfully",
-            "markdown_file": markdown_filename if markdown_exists else None,
-            "markdown_url": markdown_url
+            "html_file": html_filename if html_exists else None,
+            "html_url": html_url
         })
         
     except HTTPException:

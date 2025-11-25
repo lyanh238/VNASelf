@@ -1,4 +1,4 @@
-# VNASelf Multi-Agent System
+# X23D8 Multi-Agent System
 
 A comprehensive multi-agent system with React frontend and FastAPI backend.
 

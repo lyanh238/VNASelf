@@ -11,7 +11,7 @@ from datetime import datetime, date
 import json
 
 from config import Config
-from models.conversation import Conversation, Base
+from history.conversation import Conversation, Base
 
 class ConversationService:
     """Service for managing conversation metadata in Neon Database."""

@@ -44,7 +44,7 @@ class Config:
     
     # LangSmith settings (optional)
     LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
-    LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "vnaself")
+    LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "x23d8")
     
     # MCP settings
     MCP_SERVER_CONFIG = {

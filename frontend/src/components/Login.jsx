@@ -69,10 +69,10 @@ const Login = ({ onSwitchToRegister }) => {
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-logo">
-            <img src="/src/assets/qai_gen.png" alt="X2D35" />
+            <img src="/src/assets/qai_gen.png" alt="X23D8" />
           </div>
           <h1>Chào mừng trở lại</h1>
-          <p>Đăng nhập để tiếp tục sử dụng X2D35</p>
+          <p>Đăng nhập để tiếp tục sử dụng X23D8</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

@@ -1,6 +1,6 @@
-# VNASelf Usage Guide
+# X23D8 Usage Guide
 
-This guide provides comprehensive instructions on how to use the VNASelf multi-agent system effectively.
+This guide provides comprehensive instructions on how to use the X23D8 multi-agent system effectively.
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ python main.py
 
 ### First Interaction
 
-When you first start VNASelf, you'll see a clean chat interface. The system will automatically detect which agent should handle your request based on the content of your message.
+When you first start X23D8, you'll see a clean chat interface. The system will automatically detect which agent should handle your request based on the content of your message.
 
 ## Web Interface
 
@@ -36,7 +36,7 @@ When you first start VNASelf, you'll see a clean chat interface. The system will
 
 The web interface provides a clean, chat-based experience:
 
-- **Header**: VNASelf logo and restart button
+- **Header**: X23D8 logo and restart button
 - **Chat Area**: Conversation history with agent identification
 - **Input Field**: Type your questions here
 - **Suggestions**: Quick action buttons for common tasks
@@ -51,7 +51,7 @@ The web interface provides a clean, chat-based experience:
 
 ### Adding Expenses
 
-VNASelf can help you track your spending in Vietnamese or English:
+X23D8 can help you track your spending in Vietnamese or English:
 
 #### Basic Format
 ```
@@ -105,7 +105,7 @@ VNASelf can help you track your spending in Vietnamese or English:
 
 ### Expense Categories
 
-VNASelf supports three main categories:
+X23D8 supports three main categories:
 
 - **Food**: Meals, groceries, restaurants
 - **Transportation**: Taxi, gas, public transport
@@ -165,7 +165,7 @@ VNASelf supports three main categories:
 
 ### Conflict Resolution
 
-When creating events, VNASelf automatically checks for conflicts:
+When creating events, X23D8 automatically checks for conflicts:
 
 1. **Conflict Detected**: The system will show conflicting events
 2. **Resolution Options**:
@@ -186,7 +186,7 @@ Each response shows which agent processed your request:
 
 ### Multi-Language Support
 
-VNASelf supports both Vietnamese and English:
+X23D8 supports both Vietnamese and English:
 
 #### Vietnamese Examples
 ```
@@ -204,7 +204,7 @@ VNASelf supports both Vietnamese and English:
 
 ### Natural Language Processing
 
-VNASelf understands natural language queries:
+X23D8 understands natural language queries:
 
 ```
 "hôm nay tôi chi 50000 VND cho xăng"
@@ -281,4 +281,4 @@ If you need assistance:
 
 ---
 
-**Happy using VNASelf!**
+**Happy using X23D8!**

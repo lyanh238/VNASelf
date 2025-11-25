@@ -1,6 +1,6 @@
-# VNASelf Documentation
+# X23D8 Documentation
 
-Welcome to the VNASelf documentation! This directory contains comprehensive guides and references for the VNASelf multi-agent system with modern React frontend.
+Welcome to the X23D8 documentation! This directory contains comprehensive guides and references for the X23D8 multi-agent system with modern React frontend.
 
 ## Documentation Index
 
@@ -19,14 +19,14 @@ Welcome to the VNASelf documentation! This directory contains comprehensive guid
 
 ## Quick Start
 
-1. **Installation**: Follow the [Setup Guide](SETUP.md) to install and configure VNASelf
+1. **Installation**: Follow the [Setup Guide](SETUP.md) to install and configure X23D8
 2. **Basic Usage**: Read the [Usage Guide](USAGE.md) to learn how to interact with the system
 3. **Finance Features**: Check the [Finance Agent Guide](FINANCE_AGENT.md) for expense management
 4. **Technical Details**: Review the [Architecture Guide](ARCHITECTURE.md) for system design
 
 ## System Overview
 
-VNASelf is a multi-agent personal assistant with a modern React frontend that helps you manage:
+X23D8 is a multi-agent personal assistant with a modern React frontend that helps you manage:
 
 - **Personal Finance**: Track expenses, view spending history, and analyze your financial habits
 - **Calendar Management**: Schedule events, check availability, and manage your time
@@ -80,7 +80,7 @@ If you encounter any issues:
 
 ## Version Information
 
-- **VNASelf Version**: 1.0.0
+- **X23D8 Version**: 1.0.0
 - **Python Requirements**: 3.11+
 - **Dependencies**: See requirements.txt in the main directory
 
@@ -94,4 +94,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ---
 
-**Happy using VNASelf!**
+**Happy using X23D8!**

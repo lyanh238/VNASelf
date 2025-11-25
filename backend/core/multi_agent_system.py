@@ -9,10 +9,13 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langsmith import traceable
+import json
+import re
 
 from config import Config
 from agents import CalendarAgent, SupervisorAgent, FinanceAgent, SearchAgent, NoteAgent, OCRAgent
 from services import MCPService
+from services.document_service import DocumentService
 from services.chat_history_service import LogsService
 from services.conversation_service import ConversationService
 from services.conversation_title_service import ConversationTitleService
@@ -39,6 +42,7 @@ class MultiAgentSystem:
         self.per_conversation_storage = PerConversationStorageService()
         self.payment_service = PaymentHistoryService()
         self.note_db_service = NoteService()
+        self.document_service = DocumentService()
         self.state_manager = StateManager()
         
         # Initialize agents
@@ -46,7 +50,7 @@ class MultiAgentSystem:
         self.finance_agent = FinanceAgent(self.model, self.payment_service)
         self.search_agent = SearchAgent(self.model)
         self.note_agent = NoteAgent(self.model, self.note_db_service)
-        self.ocr_agent = OCRAgent(self.model)
+        self.ocr_agent = OCRAgent(self.model, document_service=self.document_service)
         self.supervisor_agent = SupervisorAgent(self.model, self.calendar_agent, self.finance_agent, self.search_agent, self.note_agent, self.ocr_agent)
         
         # Note: Cross-agent context is automatically handled by LangGraph MessagesState
@@ -72,6 +76,7 @@ class MultiAgentSystem:
             self.per_conversation_storage.initialize(),
             self.payment_service.initialize(),
             self.note_db_service.initialize(),
+            self.document_service.initialize(),
             self.mcp_service.initialize(),
             return_exceptions=True  # Don't fail if one service fails
         )
@@ -98,7 +103,26 @@ class MultiAgentSystem:
             system_prompt = self.supervisor_agent.get_system_prompt()
             current_time = self.supervisor_agent.get_current_time_iso()
             
-            full_prompt = f"{system_prompt}\n\nCurrent time (Asia/Ho_Chi_Minh): {current_time}"
+            # Try to detect language from the last user message
+            detected_lang = None
+            for msg in reversed(state["messages"]):
+                if hasattr(msg, 'content') and isinstance(msg.content, str):
+                    # Check if this is a user message
+                    if hasattr(msg, 'type') and msg.type == 'human':
+                        detected_lang = self._detect_language(msg.content, None)
+                        break
+                    # Also check HumanMessage
+                    if isinstance(msg, HumanMessage):
+                        detected_lang = self._detect_language(msg.content, None)
+                        break
+            
+            # Add language instruction to system prompt if detected
+            language_info = self._get_language_info(detected_lang)
+            language_section = ""
+            if language_info["system_prompt_addition"]:
+                language_section = f"\n\n{language_info['system_prompt_addition']}"
+            
+            full_prompt = f"{system_prompt}{language_section}\n\nCurrent time (Asia/Ho_Chi_Minh): {current_time}"
             
             # Create system message and combine with existing messages
             messages = [SystemMessage(content=full_prompt)] + state["messages"]
@@ -172,40 +196,54 @@ class MultiAgentSystem:
             timestamp=current_timestamp
         )
         
-        # Auto-detect language from user message if no explicit locale provided
-        # Default to Vietnamese for Vietnamese users
-        detected_language = None
-        if not locale:
-            # Simple detection based on Vietnamese characters and common patterns
-            vietnamese_chars = set("àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ")
-            if any(char in vietnamese_chars for char in message.lower()):
-                detected_language = "vi"
-            elif message.strip()[0].isascii() and not any(char in vietnamese_chars for char in message):
-                detected_language = "en"
+        # Try to get preferred language from conversation metadata first
+        preferred_language = None
+        if current_thread_id:
+            try:
+                conversation = await self.conversation_service.get_conversation_by_thread_id(current_thread_id)
+                if conversation and conversation.summary:
+                    try:
+                        metadata = json.loads(conversation.summary)
+                        preferred_language = metadata.get("preferred_language")
+                    except:
+                        pass
+            except Exception as e:
+                print(f"Warning: Could not load language preference: {e}")
         
-        # Use detected language or provided locale
-        language_to_use = detected_language or locale
-        
-        # Language instruction based on locale or detected language
-        language_instruction = None
-        if language_to_use:
-            lang = (language_to_use or "").lower()
-            if lang.startswith("vi"):
-                language_instruction = "Hãy trả lời bằng tiếng Việt."
-            elif lang.startswith("ja"):
-                language_instruction = "日本語で回答してください。"
-            elif lang.startswith("ko"):
-                language_instruction = "한국어로 답변해 주세요."
-            elif lang.startswith("zh"):
-                language_instruction = "请用中文回答。"
-            elif lang.startswith("en"):
-                language_instruction = "Please answer in English."
-            # fallback: no extra instruction
+        # Auto-detect language from user message if no explicit locale or preferred language
+        # Priority: locale > preferred_language > detected from message
+        if locale:
+            detected_language = self._detect_language(message, locale)
+        elif preferred_language:
+            detected_language = preferred_language
         else:
-            # Default to Vietnamese if language cannot be determined
-            language_instruction = "Hãy trả lời bằng tiếng Việt."
-
-        user_content = f"{language_instruction}\n\n{message}" if language_instruction else message
+            detected_language = self._detect_language(message, None)
+        
+        # Get language instruction and system prompt addition
+        language_info = self._get_language_info(detected_language)
+        
+        # Store detected language in conversation metadata for future reference
+        if detected_language and current_thread_id and detected_language != preferred_language:
+            try:
+                conversation = await self.conversation_service.get_conversation_by_thread_id(current_thread_id)
+                if conversation:
+                    # Update conversation metadata with preferred language
+                    try:
+                        metadata = json.loads(conversation.summary or "{}")
+                    except:
+                        metadata = {}
+                    metadata["preferred_language"] = detected_language
+                    await self.conversation_service.update_conversation_summary(
+                        current_thread_id, 
+                        json.dumps(metadata)
+                    )
+            except Exception as e:
+                print(f"Warning: Could not save language preference: {e}")
+        
+        # Add language instruction to user message
+        user_content = message
+        if language_info["instruction"]:
+            user_content = f"{language_info['instruction']}\n\n{message}"
 
         # Process the message
         result = await self.graph.ainvoke(
@@ -457,10 +495,86 @@ class MultiAgentSystem:
             # Reset thread for next example
             self.state_manager.create_new_thread()
     
+    def _detect_language(self, message: str, locale: Optional[str] = None) -> Optional[str]:
+        """Detect language from message or use provided locale."""
+        if locale:
+            # Extract language code from locale (e.g., "vi-VN" -> "vi", "en-US" -> "en")
+            lang_code = locale.split("-")[0].lower() if "-" in locale else locale.lower()
+            return lang_code
+        
+        if not message or not message.strip():
+            return None
+        
+        message_lower = message.lower()
+        
+        # Vietnamese detection
+        vietnamese_chars = set("àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ")
+        vietnamese_words = ["tôi", "bạn", "của", "và", "là", "có", "không", "được", "với", "cho", "này", "đó", "trong", "một", "các"]
+        
+        if any(char in vietnamese_chars for char in message_lower):
+            return "vi"
+        if any(word in message_lower for word in vietnamese_words):
+            return "vi"
+        
+        # Japanese detection
+        japanese_chars = re.compile(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]')
+        if japanese_chars.search(message):
+            return "ja"
+        
+        # Korean detection
+        korean_chars = re.compile(r'[\uAC00-\uD7AF]')
+        if korean_chars.search(message):
+            return "ko"
+        
+        # Chinese detection
+        chinese_chars = re.compile(r'[\u4E00-\u9FFF]')
+        if chinese_chars.search(message):
+            return "zh"
+        
+        # English detection (default for ASCII)
+        if message.strip() and all(ord(c) < 128 for c in message):
+            return "en"
+        
+        # Default to Vietnamese if cannot determine
+        return "vi"
+    
+    def _get_language_info(self, language: Optional[str]) -> Dict[str, str]:
+        """Get language instruction and system prompt addition based on detected language."""
+        if not language:
+            language = "vi"  # Default to Vietnamese
+        
+        lang = language.lower()
+        
+        language_map = {
+            "vi": {
+                "instruction": "Hãy trả lời bằng tiếng Việt một cách tự nhiên và rõ ràng.",
+                "system_prompt_addition": "QUY TẮC NGÔN NGỮ: Trả lời bằng tiếng Việt một cách tự nhiên, rõ ràng và thân thiện."
+            },
+            "en": {
+                "instruction": "Please answer in English naturally and clearly.",
+                "system_prompt_addition": "LANGUAGE RULE: Answer in English naturally, clearly, and friendly."
+            },
+            "ja": {
+                "instruction": "日本語で自然で明確に回答してください。",
+                "system_prompt_addition": "言語ルール: 日本語で自然で明確に、親しみやすく回答してください。"
+            },
+            "ko": {
+                "instruction": "한국어로 자연스럽고 명확하게 답변해 주세요.",
+                "system_prompt_addition": "언어 규칙: 한국어로 자연스럽고 명확하며 친근하게 답변하세요."
+            },
+            "zh": {
+                "instruction": "请用中文自然清晰地回答。",
+                "system_prompt_addition": "语言规则: 用中文自然、清晰地回答，保持友好。"
+            }
+        }
+        
+        return language_map.get(lang, language_map["vi"])
+    
     async def close(self):
         """Close the system and cleanup resources."""
         await self.mcp_service.close()
         await self.logs_service.close()
         await self.payment_service.close()
         await self.note_db_service.close()
+        await self.document_service.close()
         print(" Multi-Agent System closed.")

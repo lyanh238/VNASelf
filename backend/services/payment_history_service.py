@@ -12,7 +12,7 @@ import json
 from collections import defaultdict
 
 from config import Config
-from models.payment_history import PaymentHistory, Base
+from history.payment_history import PaymentHistory, Base
 
 class PaymentHistoryService:
     """Service for managing payment history in Neon Database."""

@@ -10,14 +10,6 @@ const AgentList = ({ onAgentSelect }) => {
   // Available agents from the backend system
   const agents = [
     {
-      id: 'supervisor',
-      name: 'Supervisor Agent',
-      description: 'Intelligent supervisor that routes requests to appropriate specialized agents',
-      icon: <Brain size={24}/>,
-      capabilities: ['Calendar Management', 'Finance Tracking', 'Smart Routing'],
-      color: '#6366f1'
-    },
-    {
       id: 'calendar',
       name: 'Calendar Agent',
       description: 'Specialized agent for Google Calendar operations with conflict detection',

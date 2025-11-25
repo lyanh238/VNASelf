@@ -20,16 +20,6 @@ const AgentChat = ({ agent, onBack }) => {
 
   // Agent-specific welcome messages and suggestions
   const agentWelcomeData = {
-    supervisor: {
-      title: 'Supervisor Agent',
-      subtitle: 'Your intelligent assistant for routing tasks',
-      suggestions: [
-        'Schedule a team meeting for next week',
-        'Add a new expense to my budget',
-        'Check my calendar for conflicts',
-        'Show me my spending summary'
-      ]
-    },
     calendar: {
       title: 'Calendar Agent',
       subtitle: 'Specialized in calendar management and scheduling',
@@ -64,10 +54,6 @@ const AgentChat = ({ agent, onBack }) => {
       title: 'OCR Agent',
       subtitle: 'Extract and search text from documents and images',
       suggestions: [
-        'Process a PDF document',
-        'Extract text from an image',
-        'Search in processed documents',
-        'List all processed documents'
       ]
     }
   }
@@ -78,7 +64,7 @@ const AgentChat = ({ agent, onBack }) => {
   const aiWarningTexts = [
     "AI-generated content may not always be accurate. Please verify important information independently.", // English
     "AIが生成したコンテンツは常に正確とは限りません。重要な情報は独立して確認してください。", // Japanese
-    "Nội dung do AI tạo ra có thể không phải lúc nào cũng chính xác. Vui lòng xác minh lại thật kĩ.", // Vietnamese
+    "Nội dung do AI tạo ra có thể không phải lúc nào cũng chính xác. Vui lòng xác minh lại trước khi dùng.", // Vietnamese
     "AI生成的内容可能并不总是准确的。请独立验证重要信息。" // Chinese
   ]
 
@@ -97,7 +83,7 @@ const AgentChat = ({ agent, onBack }) => {
       setTimeout(() => {
         setIsTransitioning(false)
       }, 1000) // Start fade in after language change
-    }, 6000) // Change every 6 seconds
+    }, 1000) // Change every 6 seconds
     
     return () => clearInterval(interval)
   }, [])
@@ -167,14 +153,18 @@ const AgentChat = ({ agent, onBack }) => {
 
       if (response.ok) {
         const data = await response.json()
-        const assistantMessage = {
-          id: Date.now() + 1,
-          type: 'assistant',
-          content: data.content || 'No response received',
-          timestamp: new Date().toISOString()
-        }
-
-        setMessages(prev => [...prev, assistantMessage])
+        
+        // Remove processing message and add actual result
+        setMessages(prev => {
+          const filtered = prev.filter(msg => !msg.isProcessing)
+          const assistantMessage = {
+            id: Date.now() + 1,
+            type: 'assistant',
+            content: data.content || 'No response received',
+            timestamp: new Date().toISOString()
+          }
+          return [...filtered, assistantMessage]
+        })
         
         if (data.thread_id) {
           setCurrentThreadId(data.thread_id)
@@ -185,13 +175,17 @@ const AgentChat = ({ agent, onBack }) => {
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString()
-      }
-      setMessages(prev => [...prev, errorMessage])
+      // Remove processing message and add error
+      setMessages(prev => {
+        const filtered = prev.filter(msg => !msg.isProcessing)
+        const errorMessage = {
+          id: Date.now() + 1,
+          type: 'assistant',
+          content: 'Sorry, I encountered an error. Please try again.',
+          timestamp: new Date().toISOString()
+        }
+        return [...filtered, errorMessage]
+      })
     } finally {
       setIsLoading(false)
     }
@@ -218,10 +212,20 @@ const AgentChat = ({ agent, onBack }) => {
     const userMessage = {
       id: Date.now(),
       type: 'user',
-      content: `Đang xử lý file: ${uploadedFile.name}`,
+      content: `Đã tải lên file: ${uploadedFile.name}`,
       timestamp: new Date().toISOString()
     }
     setMessages(prev => [...prev, userMessage])
+    
+    // Show processing message immediately
+    const processingMessage = {
+      id: Date.now() + 1,
+      type: 'assistant',
+      content: 'Processing...',
+      timestamp: new Date().toISOString(),
+      isProcessing: true
+    }
+    setMessages(prev => [...prev, processingMessage])
 
     try {
       const formData = new FormData()
@@ -244,14 +248,19 @@ const AgentChat = ({ agent, onBack }) => {
           setCurrentThreadId(data.thread_id)
         }
 
-        const assistantMessage = {
-          id: Date.now() + 1,
-          type: 'assistant',
-          content: data.result || 'File processed successfully',
-          timestamp: new Date().toISOString()
-        }
-
-        setMessages(prev => [...prev, assistantMessage])
+        // Remove processing message and add actual result
+        setMessages(prev => {
+          const filtered = prev.filter(msg => !msg.isProcessing)
+          const assistantMessage = {
+            id: Date.now() + 1,
+            type: 'assistant',
+            content: data.result || 'File processed successfully',
+            timestamp: new Date().toISOString(),
+            ocrHtmlUrl: data.html_url || null,
+            ocrHtmlFilename: data.html_file || null
+          }
+          return [...filtered, assistantMessage]
+        })
         setUploadedFile(null)
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
@@ -283,6 +292,13 @@ const AgentChat = ({ agent, onBack }) => {
 
   const formatMessage = (content) => {
     if (!content || typeof content !== 'string') return ''
+    // Check if content already contains HTML tags (from OCR agent or other sources)
+    const hasHTML = /<[a-z][\s\S]*>/i.test(content)
+    if (hasHTML) {
+      // If content has HTML, return as-is (already formatted)
+      return content
+    }
+    // Otherwise, apply markdown formatting
     return content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -483,12 +499,51 @@ const AgentChat = ({ agent, onBack }) => {
                       {new Date(message.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
-                   <div
-                     className="message-text"
-                     dangerouslySetInnerHTML={{
-                       __html: formatMessage(message.content || '')
-                     }}
-                   />
+                  {message.isProcessing ? (
+                    <div className="message-text">
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        color: 'var(--text-muted)',
+                        fontStyle: 'italic'
+                      }}>
+                        <span>Processing</span>
+                        <div className="typing-indicator" style={{ margin: 0 }}>
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        className="message-text"
+                        dangerouslySetInnerHTML={{
+                          __html: formatMessage(message.content || '')
+                        }}
+                      />
+                      {message.ocrHtmlUrl && (
+                        <div className="ocr-attachment">
+                          <div className="ocr-download-container">
+                            <a
+                              className="ocr-download-btn"
+                              href={message.ocrHtmlUrl}
+                              download={message.ocrHtmlFilename || 'ocr_result.html'}
+                              rel="noopener noreferrer"
+                            >
+                              <span className="download-btn-icon">⬇️</span>
+                              <span className="download-btn-text">Tải file HTML</span>
+                            </a>
+                            <div className="ocr-download-info">
+                              <small>File HTML chứa toàn bộ nội dung Docling. Bạn có thể mở trực tiếp trong trình duyệt.</small>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -514,10 +569,21 @@ const AgentChat = ({ agent, onBack }) => {
                   <div className="message-header">
                     <span className="message-role">{agent.name}</span>
                   </div>
-                  <div className="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                  <div className="message-text">
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      color: 'var(--text-muted)',
+                      fontStyle: 'italic'
+                    }}>
+                      <span>Processing</span>
+                      <div className="typing-indicator" style={{ margin: 0 }}>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

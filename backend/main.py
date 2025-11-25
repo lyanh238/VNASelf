@@ -1,5 +1,5 @@
 """
-Main entry point for the VNASelf backend API
+Main entry point for the X23D8 backend API
 """
 
 import sys

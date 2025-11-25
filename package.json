@@ -1,7 +1,7 @@
 {
-  "name": "vnaself-app",
+  "name": "x23d8-app",
   "version": "1.0.0",
-  "description": "VNASelf Multi-Agent System with React Frontend",
+  "description": "X23D8 Multi-Agent System with React Frontend",
   "scripts": {
     "dev": "cd frontend && npm run dev",
     "frontend": "cd frontend && npm run frontend",
@@ -10,12 +10,12 @@
     "build": "cd frontend && npm run build"
   },
   "keywords": [
-    "vnaself",
+    "x23d8",
     "multi-agent",
     "react",
     "fastapi"
   ],
-  "author": "VNASelf Team",
+  "author": "X23D8 Team",
   "license": "MIT",
   "dependencies": {
     "lucide-react": "^0.548.0"

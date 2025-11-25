@@ -82,7 +82,7 @@ const ChatApp = () => {
   const aiWarningTexts = [
     "AI-generated content may not always be accurate. Please verify important information independently.", // English
     "AIが生成したコンテンツは常に正確とは限りません。重要な情報は独立して確認してください。", // Japanese
-    "Nội dung do AI tạo ra có thể không phải lúc nào cũng chính xác. Vui lòng xác minh thông tin quan trọng một cách độc lập.", // Vietnamese
+    "Nội dung do AI tạo ra có thể không phải lúc nào cũng chính xác. Vui lòng xác minh lại thật kĩ trước khi dùng.", // Vietnamese
     "AI生成的内容可能并不总是准确的。请独立验证重要信息。" // Chinese
   ]
 
@@ -225,7 +225,7 @@ const ChatApp = () => {
             return {
               ...message,
               type: 'assistant',
-              agent_name: message.agent_name || 'VNASelf'
+              agent_name: message.agent_name || 'X23D8'
             }
           }
         })
@@ -344,11 +344,6 @@ const ChatApp = () => {
         sendMessage(`Tìm kiếm tài liệu: ${inputValue}`)
         setSelectedTool(null)
         setIsWebSearchMode(false)
-      } else if (selectedTool === 'ocr-process') {
-        // Send OCR processing request
-        sendMessage(`Xử lý OCR: ${inputValue}`)
-        setSelectedTool(null)
-        setIsWebSearchMode(false)
       } else {
         // Send normal message
         sendMessage(inputValue)
@@ -378,7 +373,7 @@ const ChatApp = () => {
     } else if (selectedTool === 'document-search') {
       return "Nhập từ khóa tìm kiếm tài liệu..."
     } else if (selectedTool === 'ocr-process') {
-      return "Nhập đường dẫn file PDF hoặc ảnh để xử lý OCR..."
+      return "upload ảnh hoặc nhập đường dẫn"
     }
     return "How can I help you today?"
   }
@@ -550,7 +545,14 @@ const ChatApp = () => {
   }
 
   const formatMessage = (content) => {
-    // Simple markdown-like formatting
+    if (!content || typeof content !== 'string') return ''
+    // Check if content already contains HTML tags (from OCR agent or other sources)
+    const hasHTML = /<[a-z][\s\S]*>/i.test(content)
+    if (hasHTML) {
+      // If content has HTML, return as-is (already formatted)
+      return content
+    }
+    // Otherwise, apply markdown formatting
     return content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -704,10 +706,6 @@ const ChatApp = () => {
                         <FileText size={15} strokeWidth={2} />
                         <span>Document Search</span>
                       </div>
-                      <div className="search-option" onClick={() => handleToolSelect('ocr-process')}>
-                        <ScanLine size={15} strokeWidth={2} />
-                        <span>OCR Processing</span>
-                      </div>
                     </div>
                   </div>
                   <input
@@ -813,7 +811,7 @@ const ChatApp = () => {
                     <div className="message-content">
                       <div className="message-header">
                         <span className="message-role">
-                          {message.type === 'user' ? (message.user_name || user?.name || 'You') : (message.agent_name || 'VNASelf')}
+                          {message.type === 'user' ? (message.user_name || user?.name || 'You') : (message.agent_name || 'X23D8')}
                         </span>
                         <span className="message-time">
                           {new Date(message.timestamp).toLocaleTimeString()}
@@ -836,7 +834,7 @@ const ChatApp = () => {
                     </div>
                     <div className="message-content">
                       <div className="message-header">
-                        <span className="message-role">VNASelf</span>
+                        <span className="message-role">X23D8</span>
                       </div>
                       <div className="message-text">
                         <div className="typing-indicator">

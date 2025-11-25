@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from config import Config
-from models.note import Note, Base
+from history.note import Note, Base
 
 
 class NoteService:
