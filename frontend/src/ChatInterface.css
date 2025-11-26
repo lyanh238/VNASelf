@@ -196,6 +196,7 @@
   display: flex;
   gap: 4px;
   align-items: center;
+  margin-top: 8px;
 }
 
 .typing-indicator span {
@@ -222,6 +223,67 @@
   40% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* Status Indicators (Thinking, Planning, Executing) */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  min-height: 32px;
+  animation: statusFadeIn 0.4s ease-in;
+}
+
+.status-indicator.thinking {
+  color: #6366f1;
+}
+
+.status-indicator.planning {
+  color: #8b5cf6;
+}
+
+.status-indicator.executing {
+  color: #10b981;
+}
+
+.status-icon {
+  font-size: 20px;
+  animation: statusPulse 2s infinite ease-in-out;
+}
+
+.status-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  opacity: 0.9;
+}
+
+.status-indicator .typing-indicator {
+  margin-top: 0;
+  margin-left: auto;
+}
+
+@keyframes statusFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
   }
 }
 
@@ -303,6 +365,23 @@
   margin-left: 12px;
 }
 
+.upload-btn {
+  padding: 0 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.upload-btn .upload-label {
+  font-size: 13px;
+}
+
+.upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .send-btn {
   width: 32px;
   height: 32px;
@@ -376,6 +455,17 @@
   font-size: 12px;
   color: var(--text-muted);
   text-align: center;
+}
+
+.upload-status-banner {
+  text-align: center;
+  margin: 8px 24px 16px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  border: 1px dashed var(--border-color);
 }
 
 /* Responsive Design */

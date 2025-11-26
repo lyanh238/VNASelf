@@ -689,19 +689,39 @@ const ChatApp = () => {
 
               <div className="chat-input-container">
                 <div className="chat-input">
-                  <div className="input-controls-left">
-                    <button 
-                      className="input-btn" 
-                      onClick={() => setShowSearchOptions(!showSearchOptions)}
-                      title="Tùy chọn tìm kiếm"
-                    >
-                      +
-                    </button>
+                    <div className="input-controls-left">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.txt,.docx,.csv"
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                      />
+                      <button 
+                        className="input-btn" 
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Upload file for OCR"
+                        disabled={isLoading || isUploading}
+                      >
+                        <Upload size={18} />
+                      </button>
+                      <button 
+                        className="input-btn" 
+                        onClick={() => setShowSearchOptions(!showSearchOptions)}
+                        title="Tùy chọn tìm kiếm"
+                        disabled={isLoading || isUploading}
+                      >
+                        +
+                      </button>
                     <div className={`search-options ${showSearchOptions ? 'show' : ''}`}>
                       <div className="search-option" onClick={() => handleToolSelect('web-search')}>
                         <span>🌐</span>
                         <span>Web Search</span>
                       </div>
+                          <div className="search-option" onClick={() => handleToolSelect('ocr-process')}>
+                            <ScanLine size={15} strokeWidth={2} />
+                            <span>OCR Processing</span>
+                          </div>
                       <div className="search-option" onClick={() => handleToolSelect('document-search')}>
                         <FileText size={15} strokeWidth={2} />
                         <span>Document Search</span>
@@ -905,13 +925,13 @@ const ChatApp = () => {
                 )}
                 <div className="chat-input">
                   <div className="input-controls-left">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
-                      onChange={handleFileSelect}
-                      style={{ display: 'none' }}
-                    />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.txt,.docx,.csv"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
                     <button 
                       className="input-btn" 
                       onClick={() => fileInputRef.current?.click()}
@@ -949,7 +969,6 @@ const ChatApp = () => {
                     placeholder={isWebSearchMode ? "Nhập từ khóa tìm kiếm web..." : "Type your message..."}
                     value={inputValue}
                     onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
                     className="chat-input-field"
                     disabled={isLoading || isUploading}
                   />
