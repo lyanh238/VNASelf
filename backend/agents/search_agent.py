@@ -64,48 +64,48 @@ class SearchAgent(BaseAgent):
                 )
                 
                 if not search_results or not search_results.get('results'):
-                    return f"Không tìm thấy kết quả nào cho từ khóa: '{query}'"
+                    return f"No results found for keyword: '{query}'"
                 
                 # Format results
                 formatted_results = []
-                formatted_results.append(f" **Kết quả tìm kiếm cho: '{query}'**\n")
+                formatted_results.append(f" **Search results for: '{query}'**\n")
                 
                 # Add answer if available
                 if search_results.get('answer'):
-                    formatted_results.append("** Tóm tắt:**")
+                    formatted_results.append("** Summary:**")
                     formatted_results.append(search_results['answer'])
                     formatted_results.append("")
                 
                 # Add detailed results with sources
-                formatted_results.append("** Nguồn tin:**")
+                formatted_results.append("** Sources:**")
                 formatted_results.append("")
                 
                 for i, result in enumerate(search_results['results'][:max_results], 1):
-                    title = result.get('title', 'Không có tiêu đề')
+                    title = result.get('title', 'No title')
                     url = result.get('url', '')
-                    content = result.get('content', 'Không có nội dung')
+                    content = result.get('content', 'No content')
                     
                     # Extract domain name for source
-                    domain = url.split('/')[2] if url and len(url.split('/')) > 2 else 'Nguồn không xác định'
+                    domain = url.split('/')[2] if url and len(url.split('/')) > 2 else 'Unknown source'
                     
                     formatted_results.append(f"**{i}. {title}**")
-                    formatted_results.append(f" **Nguồn:** {domain}")
+                    formatted_results.append(f" **Source:** {domain}")
                     formatted_results.append(f" **Link:** {url}")
-                    formatted_results.append(f" **Nội dung:** {content[:200]}{'...' if len(content) > 200 else ''}")
+                    formatted_results.append(f" **Content:** {content[:200]}{'...' if len(content) > 200 else ''}")
                     formatted_results.append("")  # Empty line for spacing
                 
                 # Add sources footer
                 formatted_results.append("---")
-                formatted_results.append("** Tất cả nguồn:**")
+                formatted_results.append("** All sources:**")
                 for i, result in enumerate(search_results['results'][:max_results], 1):
                     url = result.get('url', '')
-                    domain = url.split('/')[2] if url and len(url.split('/')) > 2 else 'Nguồn không xác định'
+                    domain = url.split('/')[2] if url and len(url.split('/')) > 2 else 'Unknown source'
                     formatted_results.append(f"{i}. {domain} - {url}")
                 
                 return "\n".join(formatted_results)
                 
             except Exception as e:
-                return f"Lỗi khi tìm kiếm: {str(e)}"
+                return f"Error searching: {str(e)}"
         
         return tavily_search
     
@@ -124,41 +124,41 @@ class SearchAgent(BaseAgent):
             Returns:
                 Mock search results message
             """
-            return f""" **Kết quả tìm kiếm mô phỏng cho: '{query}'**"""
+            return f""" **Mock search results for: '{query}'**"""
         
         return mock_search
     
     def get_system_prompt(self) -> str:
-        return """Bạn là Search Agent chuyên về tìm kiếm thông tin trên web.
+        return """You are a Search Agent specialized in web information search.
 
-QUY TẮC NGÔN NGỮ:
-- Mặc định trả lời bằng tiếng Việt.
-- Nếu người dùng hỏi bằng ngôn ngữ khác, trả lời bằng chính ngôn ngữ đó.
+LANGUAGE RULES:
+- By default, respond in Vietnamese.
+- If user asks in a different language, respond in that same language.
 
-NHIỆM VỤ:
-- Sử dụng công cụ tavily_search để tìm kiếm thông tin trên internet
-- Tổng hợp và trình bày kết quả tìm kiếm một cách rõ ràng, dễ hiểu
-- Cung cấp thông tin chính xác và cập nhật từ các nguồn đáng tin cậy
-- Luôn hiển thị nguồn tin để người dùng có thể đối chiếu
-- Trả lời bằng tiếng Việt
+TASKS:
+- Use tavily_search tool to search information on the internet
+- Summarize and present search results clearly and understandably
+- Provide accurate and updated information from reliable sources
+- Always display sources so users can verify
+- Respond in Vietnamese
 
-QUY TRÌNH:
-1. Phân tích từ khóa tìm kiếm từ người dùng
-2. Sử dụng tavily_search với max_results=3 để tìm kiếm
-3. Tổng hợp kết quả và trình bày theo format:
-   - Tóm tắt tổng quan (nếu có)
-   - Danh sách nguồn tin với:
-     * Tiêu đề bài viết
-     * Tên nguồn (domain)
-     * Link đầy đủ
-     * Nội dung tóm tắt
-   - Danh sách tất cả nguồn để đối chiếu
+PROCESS:
+1. Analyze search keywords from user
+2. Use tavily_search with max_results=3 to search
+3. Summarize results and present in format:
+   - Overall summary (if available)
+   - List of sources with:
+     * Article title
+     * Source name (domain)
+     * Full link
+     * Summary content
+   - List of all sources for verification
 
-LƯU Ý:
-- Luôn tìm kiếm với từ khóa tiếng Anh để có kết quả tốt nhất
-- Nếu không tìm thấy kết quả, thông báo rõ ràng cho người dùng
-- Ưu tiên các nguồn tin đáng tin cậy và cập nhật
-- Luôn hiển thị nguồn tin để người dùng có thể kiểm tra và đối chiếu"""
+NOTES:
+- Always search with English keywords for best results
+- If no results found, clearly notify user
+- Prioritize reliable and updated sources
+- Always display sources so users can verify and cross-reference"""
     
     def get_tools(self) -> List[Any]:
         """Get available tools for this agent."""

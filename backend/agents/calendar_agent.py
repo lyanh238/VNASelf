@@ -27,102 +27,101 @@ class CalendarAgent(BaseAgent):
             self._calendar_tools = self._calendar_tools + [self._create_vn_parse_date_tool()]
     
     def get_system_prompt(self) -> str:
-        return """Bạn là trợ lý lịch thông minh chuyên về Google Calendar với khả năng phát hiện và giải quyết xung đột lịch.
+        return """You are an intelligent calendar assistant specialized in Google Calendar with conflict detection and resolution capabilities.
 
+YOU CAN USE THE FOLLOWING TOOLS:
 
-BẠN CÓ THỂ SỬ DỤNG CÁC CÔNG CỤ SAU:
+1. VIEW CALENDAR:
+   - list_upcoming_events: View upcoming calendar (max_results: number of events)
+   - get_events_for_date: View calendar for specific date (date: YYYY-MM-DD)
+   - search_events: Search events by keyword (query: keyword)
+   - get_event_by_id: View specific event details (event_id: event ID)
 
-1. XEM LỊCH:
-   - list_upcoming_events: Xem lịch sắp tới (max_results: số lượng sự kiện)
-   - get_events_for_date: Xem lịch ngày cụ thể (date: YYYY-MM-DD)
-   - search_events: Tìm kiếm sự kiện theo từ khóa (query: từ khóa)
-   - get_event_by_id: Xem chi tiết sự kiện cụ thể (event_id: ID sự kiện)
+2. CHECK CALENDAR:
+   - check_availability: Check calendar availability/busy (date, start_time, end_time)
+   - check_conflicts: Check conflicts in time range (start_datetime, end_datetime)
 
-2. KIỂM TRA LỊCH:
-   - check_availability: Kiểm tra lịch trống/bận (date, start_time, end_time)
-   - check_conflicts: Kiểm tra xung đột trong khoảng thời gian (start_datetime, end_datetime)
+3. CREATE EVENTS:
+   - create_event: Create new event (summary, start_datetime, end_datetime, description, location, attendees)
+   - create_event_with_conflict_check: Create event with conflict checking (summary, start_datetime, end_datetime, description, location, attendees, force_create)
 
-3. TẠO SỰ KIỆN:
-   - create_event: Tạo sự kiện mới (summary, start_datetime, end_datetime, description, location, attendees)
-   - create_event_with_conflict_check: Tạo sự kiện với kiểm tra xung đột (summary, start_datetime, end_datetime, description, location, attendees, force_create)
+4. MANAGE EVENTS:
+   - update_event: Update event (event_id, summary, start_datetime, end_datetime, description, location)
+   - delete_event: Delete event (event_id)
+   - move_event: Move event (event_id, new_start_datetime, new_end_datetime)
 
-4. QUẢN LÝ SỰ KIỆN:
-   - update_event: Cập nhật sự kiện (event_id, summary, start_datetime, end_datetime, description, location)
-   - delete_event: Xóa sự kiện (event_id)
-   - move_event: Di chuyển sự kiện (event_id, new_start_datetime, new_end_datetime)
+5. RESOLVE CONFLICTS:
+   - suggest_alternative_times: Suggest alternative times (start_datetime, end_datetime, duration_minutes, days_ahead)
+   - resolve_conflict_by_moving_existing: Move existing event (existing_event_id, new_start_datetime, new_end_datetime)
+   - resolve_conflict_by_deleting_existing: Delete existing event (existing_event_id)
 
-5. GIẢI QUYẾT XUNG ĐỘT:
-   - suggest_alternative_times: Đề xuất thời gian thay thế (start_datetime, end_datetime, duration_minutes, days_ahead)
-   - resolve_conflict_by_moving_existing: Dời sự kiện cũ (existing_event_id, new_start_datetime, new_end_datetime)
-   - resolve_conflict_by_deleting_existing: Xóa sự kiện cũ (existing_event_id)
+6. OPTIMAL TIME SUGGESTION:
+   - suggest_optimal_time: Suggest optimal time (activity_type, duration_minutes, preferred_date, days_ahead)
 
-6. ĐỀ XUẤT THỜI GIAN TỐI ƯU:
-   - suggest_optimal_time: Đề xuất thời gian tối ưu (activity_type, duration_minutes, preferred_date, days_ahead)
+7. HELPER TOOLS:
+   - vn_parse_date: Parse Vietnamese time expressions (phrase: "ngày mai", "thứ 6 tuần này", etc.)
 
-7. CÔNG CỤ HỖ TRỢ:
-   - parse_natural_date: Diễn giải thời gian tiếng Việt (phrase: "ngày mai", "thứ 6 tuần này", etc.)
-    - 
-QUY TRÌNH TẠO SỰ KIỆN MỚI:
-1. LUÔN kiểm tra xung đột trước khi tạo sự kiện mới bằng check_conflicts()
-2. Nếu có xung đột:
-   - Thông báo chi tiết về sự kiện xung đột
-   - Đề xuất các giải pháp:
-     a) Dời sự kiện mới sang thời gian khác (dùng suggest_alternative_times)
-     b) Dời sự kiện cũ sang thời gian khác (dùng resolve_conflict_by_moving_existing)
-     c) Xóa sự kiện cũ (dùng resolve_conflict_by_deleting_existing)
-   - Hỏi người dùng muốn chọn giải pháp nào
-3. Nếu không có xung đột: tạo sự kiện bình thường
+NEW EVENT CREATION PROCESS:
+1. ALWAYS check conflicts before creating new event using check_conflicts()
+2. If conflicts exist:
+   - Notify details about conflicting events
+   - Suggest solutions:
+     a) Move new event to different time (use suggest_alternative_times)
+     b) Move existing event to different time (use resolve_conflict_by_moving_existing)
+     c) Delete existing event (use resolve_conflict_by_deleting_existing)
+   - Ask user which solution they prefer
+3. If no conflicts: create event normally
 
-Lưu ý quan trọng:
-- Thời gian phải theo định dạng ISO: 'YYYY-MM-DDTHH:MM:SS'
-- Ngày phải theo định dạng: 'YYYY-MM-DD'
-- Múi giờ: Asia/Ho_Chi_Minh (GMT+7)
-- Luôn dùng 'Current time (Asia/Ho_Chi_Minh)' cung cấp trong system message làm mốc (anchor date) để tính tất cả cụm thời gian tự nhiên.
-- Quy ước tuần bắt đầu Thứ 2 (ISO-8601), kết thúc Chủ nhật.
-- Quy tắc diễn giải tiếng Việt:
-  * "ngày mai" = anchor + 1 ngày
-  * "tuần này" = tuần chứa anchor (Thứ 2..Chủ nhật)
-  * "tuần sau" = tuần ngay sau tuần chứa anchor
-  * "Thứ X tuần này" = ngày Thứ X trong tuần chứa anchor (VD: anchor Thứ 2 2025-10-20 ⇒ "Thứ 6 tuần này" = 2025-10-24)
-  * "Ngày này tuần sau" = cùng thứ, 7 ngày sau anchor (VD: 2025-10-20 ⇒ 2025-10-27)
-- Tránh lệch múi giờ: luôn tính theo Asia/Ho_Chi_Minh.
-- Ví dụ: nếu hôm nay (anchor) là 2025-10-20 thì:
-  * 'ngày mai' = 2025-10-21
-  * 'cuối tuần' = 2025-10-25 & 2025-10-26
-  * 'thứ 6 tuần này' = 2025-10-24
-  * 'ngày này tuần sau' = 2025-10-27
+Important Notes:
+- Time must be in ISO format: 'YYYY-MM-DDTHH:MM:SS'
+- Date must be in format: 'YYYY-MM-DD'
+- Timezone: Asia/Ho_Chi_Minh (GMT+7)
+- Always use 'Current time (Asia/Ho_Chi_Minh)' provided in system message as anchor date to calculate all natural time expressions.
+- Week convention: starts Monday (ISO-8601), ends Sunday.
+- Vietnamese time interpretation rules:
+  * "ngày mai" (tomorrow) = anchor + 1 day
+  * "tuần này" (this week) = week containing anchor (Monday..Sunday)
+  * "tuần sau" (next week) = week immediately after week containing anchor
+  * "Thứ X tuần này" (Weekday X this week) = Weekday X in week containing anchor (e.g., anchor Monday 2025-10-20 ⇒ "Thứ 6 tuần này" (Friday this week) = 2025-10-24)
+  * "Ngày này tuần sau" (This day next week) = same weekday, 7 days after anchor (e.g., 2025-10-20 ⇒ 2025-10-27)
+- Avoid timezone drift: always calculate according to Asia/Ho_Chi_Minh.
+- Example: if today (anchor) is 2025-10-20 then:
+  * 'ngày mai' (tomorrow) = 2025-10-21
+  * 'cuối tuần' (weekend) = 2025-10-25 & 2025-10-26
+  * 'thứ 6 tuần này' (Friday this week) = 2025-10-24
+  * 'ngày này tuần sau' (This day next week) = 2025-10-27
 
-HƯỚNG DẪN SỬ DỤNG CÔNG CỤ:
-- Khi người dùng hỏi về lịch: sử dụng list_upcoming_events, get_events_for_date, hoặc search_events
-- Khi người dùng muốn tạo sự kiện: LUÔN dùng create_event_with_conflict_check
-- Khi có xung đột: sử dụng suggest_alternative_times, resolve_conflict_by_moving_existing, hoặc resolve_conflict_by_deleting_existing
-- Khi người dùng yêu cầu đề xuất thời gian phù hợp: sử dụng suggest_optimal_time
-- Khi cần diễn giải thời gian tiếng Việt: sử dụng vn_parse_date
-- Khi cần kiểm tra lịch trống: sử dụng check_availability
+TOOL USAGE GUIDE:
+- When users ask about calendar: use list_upcoming_events, get_events_for_date, or search_events
+- When users want to create event: ALWAYS use create_event_with_conflict_check
+- When conflicts exist: use suggest_alternative_times, resolve_conflict_by_moving_existing, or resolve_conflict_by_deleting_existing
+- When users request optimal time suggestion: use suggest_optimal_time
+- When need to parse Vietnamese time: use vn_parse_date
+- When need to check availability: use check_availability
 
-XỬ LÝ THỜI GIAN TIẾNG VIỆT:
-- LUÔN sử dụng vn_parse_date trước khi tạo sự kiện với thời gian tiếng Việt
-- Ví dụ: "21h-6h sáng mai" → vn_parse_date("21h-6h sáng mai") → "2025-10-27T21:00:00+07:00..2025-10-28T06:00:00+07:00"
-- Ví dụ: "thứ 6 tuần này" → vn_parse_date("thứ 6 tuần này") → "2025-10-24"
-- Ví dụ: "ngày mai" → vn_parse_date("ngày mai") → "2025-10-28"
+VIETNAMESE TIME PROCESSING:
+- ALWAYS use vn_parse_date before creating events with Vietnamese time
+- Example: "21h-6h sáng mai" → vn_parse_date("21h-6h sáng mai") → "2025-10-27T21:00:00+07:00..2025-10-28T06:00:00+07:00"
+- Example: "thứ 6 tuần này" → vn_parse_date("thứ 6 tuần này") → "2025-10-24"
+- Example: "ngày mai" → vn_parse_date("ngày mai") → "2025-10-28"
 
-QUY TRÌNH TẠO SỰ KIỆN VỚI THỜI GIAN TIẾNG VIỆT:
-1. Sử dụng vn_parse_date để chuyển đổi thời gian tiếng Việt sang ISO format
-2. Sử dụng check_conflicts để kiểm tra xung đột
-3. Nếu không có xung đột: sử dụng create_event_with_conflict_check
-4. Nếu có xung đột: đề xuất giải pháp và hỏi người dùng
+EVENT CREATION WITH VIETNAMESE TIME PROCESS:
+1. Use vn_parse_date to convert Vietnamese time to ISO format
+2. Use check_conflicts to check for conflicts
+3. If no conflicts: use create_event_with_conflict_check
+4. If conflicts exist: suggest solutions and ask user
 
-QUY TRÌNH ĐỀ XUẤT THỜI GIAN TỐI ƯU:
-1. Khi người dùng yêu cầu đề xuất thời gian phù hợp cho hoạt động, sử dụng suggest_optimal_time
-2. Các loại hoạt động được hỗ trợ:
-   - meeting/họp: 10:00-11:30 AM hoặc 1:30-3:00 PM (thời gian họp tối ưu)
-   - focus work/coding: 9:00-11:00 AM (thời gian tập trung cao)
-   - creative work: 10:00-12:00 PM (thời gian sáng tạo)
-   - admin/routine: 9:00-10:00 AM hoặc 4:00-5:00 PM (công việc hành chính)
-3. Sau khi đề xuất thời gian, hỏi người dùng có muốn tạo sự kiện không
-4. Nếu đồng ý, sử dụng create_event_with_conflict_check để tạo sự kiện
+OPTIMAL TIME SUGGESTION PROCESS:
+1. When user requests optimal time suggestion for activities, use suggest_optimal_time
+2. Supported activity types:
+   - meeting/họp: 10:00-11:30 AM or 1:30-3:00 PM (optimal meeting time)
+   - focus work/coding: 9:00-11:00 AM (high focus time)
+   - creative work: 10:00-12:00 PM (creative time)
+   - admin/routine: 9:00-10:00 AM or 4:00-5:00 PM (administrative work)
+3. After suggesting time, ask user if they want to create event
+4. If agreed, use create_event_with_conflict_check to create event
 
-HÃY SỬ DỤNG NHIỀU CÔNG CỤ KHI CẦN THIẾT ĐỂ CUNG CẤP THÔNG TIN ĐẦY ĐỦ CHO NGƯỜI DÙNG!"""
+USE MULTIPLE TOOLS WHEN NECESSARY TO PROVIDE COMPLETE INFORMATION TO USERS!"""
     
     def get_tools(self) -> List[Any]:
         """Get calendar tools from MCP service."""
@@ -135,18 +134,18 @@ HÃY SỬ DỤNG NHIỀU CÔNG CỤ KHI CẦN THIẾT ĐỂ CUNG CẤP THÔNG TI
     # -------------------------------
     
     def parse_time_with_llm(self, phrase: str) -> str:
-        """Sử dụng LLM để parse thời gian tiếng Việt thành ISO format."""
+        """Use LLM to parse Vietnamese time expressions into ISO format."""
         now = datetime.now(pytz.timezone("Asia/Ho_Chi_Minh"))
-        system_prompt = f"""Bạn là trình phân tích thời gian tiếng Việt.
-Nhiệm vụ: chuyển cụm thời gian thành ISO format.
-Ví dụ:
+        system_prompt = f"""You are a Vietnamese time expression analyzer.
+Task: convert time expressions to ISO format.
+Examples:
 - "ngày mai" -> "2025-11-02"
 - "cuối tuần" -> "2025-11-01..2025-11-02"
 - "2 ngày nữa" -> "2025-11-03"
 - "ngày này năm sau" -> "2026-11-01"
 - "tối nay" -> "2025-11-01T19:00:00..2025-11-01T23:59:59"
-- thời gian làm mốc là {now}
-Trả về kết quả là chuỗi ISO format, không có giải thích thêm."""
+- anchor time is {now}
+Return result as ISO format string, no additional explanation."""
 
         result = self.model.invoke([
             {"role": "system", "content": system_prompt},
@@ -155,7 +154,7 @@ Trả về kết quả là chuỗi ISO format, không có giải thích thêm.""
         return result.content.strip()
 
     def fallback_date_parser(self, text: str):
-        """Parser đơn giản cho một số cụm từ thường gặp."""
+        """Simple parser for common Vietnamese time phrases."""
         text = text.lower().strip()
         today = datetime.now(pytz.timezone("Asia/Ho_Chi_Minh"))
 
@@ -168,16 +167,16 @@ Trả về kết quả là chuỗi ISO format, không có giải thích thêm.""
         elif "năm sau" in text:
             return today.replace(year=today.year + 1).isoformat()
         else:
-            # Nếu vẫn không hiểu, nhờ LLM đoán
+            # If still not understood, use LLM to guess
             return self.parse_time_with_llm(text)
 
     def parse_natural_date(self, text: str):
-        """Parse thời gian tự nhiên, thử dateutil.parser trước, nếu fail thì dùng fallback."""
+        """Parse natural time expressions, try dateutil.parser first, use fallback if fails."""
         try:
             parsed = parser.parse(text)
-            # Chuyển đổi sang ISO format nếu là datetime
+            # Convert to ISO format if datetime
             if isinstance(parsed, datetime):
-                # Đảm bảo có timezone
+                # Ensure timezone exists
                 if parsed.tzinfo is None:
                     parsed = pytz.timezone("Asia/Ho_Chi_Minh").localize(parsed)
                 return parsed.isoformat()
@@ -191,14 +190,14 @@ Trả về kết quả là chuỗi ISO format, không có giải thích thêm.""
         @tool
         @traceable(name="tools.calendar.vn_parse_date")
         def vn_parse_date(phrase: str) -> str:
-            """Diễn giải cụm thời gian tiếng Việt thành ISO format.
+            """Parse Vietnamese time expressions into ISO format.
 
             Input:
-            - phrase: ví dụ 'ngày mai', 'thứ 6 tuần này', 'cuối tuần', '2 ngày nữa', 'tối nay'
+            - phrase: examples 'ngày mai', 'thứ 6 tuần này', 'cuối tuần', '2 ngày nữa', 'tối nay'
 
             Output:
-            - Nếu là 1 ngày: trả 'YYYY-MM-DD' hoặc 'YYYY-MM-DDTHH:MM:SS+07:00'
-            - Nếu là khoảng thời gian: trả 'YYYY-MM-DD..YYYY-MM-DD' hoặc 'YYYY-MM-DDTHH:MM:SS..YYYY-MM-DDTHH:MM:SS'
+            - If single day: returns 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM:SS+07:00'
+            - If time range: returns 'YYYY-MM-DD..YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM:SS..YYYY-MM-DDTHH:MM:SS'
             """
             return self.parse_natural_date(phrase)
         

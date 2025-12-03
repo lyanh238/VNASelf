@@ -32,17 +32,17 @@ def add_expense(
     date: str,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Thêm chi tiêu mới vào lịch sử thanh toán.
+    """Add new expense to payment history.
     current date is : {now}
     Args:
-        summary: Mô tả ngắn gọn về khoản chi
-        amount: Số tiền chi (sẽ được chuyển đổi sang VND)
-        category: Loại chi tiêu (Food, Transportation, Miscellaneous)
-        date: Ngày giao dịch (YYYY-MM-DD)
-        user_id: ID người dùng (optional)
+        summary: Brief description of the expense
+        amount: Expense amount (will be converted to VND)
+        category: Expense category (Food, Transportation, Miscellaneous)
+        date: Transaction date (YYYY-MM-DD)
+        user_id: User ID (optional)
     
     Returns:
-        Dict chứa thông tin chi tiêu đã thêm
+        Dict containing the added expense information
     """
     try:
         # Validate category
@@ -86,13 +86,13 @@ def add_expense(
             if expense:
                 return {
                     "success": True,
-                    "message": "Chi tiêu đã được thêm thành công",
+                    "message": "Expense added successfully",
                     "expense": expense.to_dict()
                 }
             else:
                 return {
                     "success": False,
-                    "error": "Không thể lưu chi tiêu vào cơ sở dữ liệu"
+                    "error": "Unable to save expense to database"
                 }
         else:
             return {
@@ -103,7 +103,7 @@ def add_expense(
     except Exception as e:
         return {
             "success": False,
-            "error": f"Lỗi khi thêm chi tiêu: {str(e)}"
+            "error": f"Error adding expense: {str(e)}"
         }
 
 @tool
@@ -113,15 +113,15 @@ def add_multiple_expenses(
     date: str,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Thêm nhiều chi tiêu từ một câu mô tả.
+    """Add multiple expenses from a description string.
     
     Args:
-        expenses_text: Chuỗi mô tả nhiều chi tiêu (VD: "20k tiền ăn, 50k tiền xăng, 60k tiền giặt")
-        date: Ngày giao dịch (YYYY-MM-DD)
-        user_id: ID người dùng (optional)
+        expenses_text: String describing multiple expenses (e.g., "20k tiền ăn, 50k tiền xăng, 60k tiền giặt")
+        date: Transaction date (YYYY-MM-DD)
+        user_id: User ID (optional)
     
     Returns:
-        Dict chứa kết quả thêm chi tiêu
+        Dict containing expense addition results
     """
     try:
         # Validate date format
@@ -147,7 +147,7 @@ def add_multiple_expenses(
         if not matches:
             return {
                 "success": False,
-                "error": "Không thể phân tích chi tiêu từ văn bản. Vui lòng sử dụng định dạng: '20k tiền ăn, 50k tiền xăng'"
+                "error": "Unable to parse expenses from text. Please use format: '20k tiền ăn, 50k tiền xăng'"
             }
         
         results = []
@@ -204,7 +204,7 @@ def add_multiple_expenses(
                         "amount": amount_vnd,
                         "category": category,
                         "success": False,
-                        "error": "Không thể lưu vào cơ sở dữ liệu"
+                        "error": "Unable to save to database"
                     })
             except Exception as e:
                 results.append({
@@ -217,7 +217,7 @@ def add_multiple_expenses(
         
         return {
             "success": success_count > 0,
-            "message": f"Đã thêm thành công {success_count}/{len(matches)} chi tiêu",
+            "message": f"Successfully added {success_count}/{len(matches)} expenses",
             "total_expenses": len(matches),
             "successful_expenses": success_count,
             "results": results
@@ -226,7 +226,7 @@ def add_multiple_expenses(
     except Exception as e:
         return {
             "success": False,
-            "error": f"Lỗi khi thêm nhiều chi tiêu: {str(e)}"
+            "error": f"Error adding multiple expenses: {str(e)}"
         }
 
 @tool
@@ -235,14 +235,14 @@ def get_expense_history(
     user_id: Optional[str] = None,
     limit: int = 10
 ) -> Dict[str, Any]:
-    """Lấy lịch sử chi tiêu của người dùng.
+    """Get user's expense history.
     
     Args:
-        user_id: ID người dùng (optional)
-        limit: Số lượng bản ghi tối đa
+        user_id: User ID (optional)
+        limit: Maximum number of records
     
     Returns:
-        Dict chứa danh sách chi tiêu
+        Dict containing list of expenses
     """
     try:
         import asyncio
@@ -273,7 +273,7 @@ def get_expense_history(
     except Exception as e:
         return {
             "success": False,
-            "error": f"Lỗi khi lấy lịch sử chi tiêu: {str(e)}"
+            "error": f"Error retrieving expense history: {str(e)}"
         }
 
 @tool
@@ -283,15 +283,15 @@ def get_total_spending(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Tính tổng chi tiêu.
+    """Calculate total spending.
     
     Args:
-        user_id: ID người dùng (optional)
-        start_date: Ngày bắt đầu (YYYY-MM-DD, optional)
-        end_date: Ngày kết thúc (YYYY-MM-DD, optional)
+        user_id: User ID (optional)
+        start_date: Start date (YYYY-MM-DD, optional)
+        end_date: End date (YYYY-MM-DD, optional)
     
     Returns:
-        Dict chứa tổng chi tiêu và thống kê
+        Dict containing total spending and statistics
     """
     try:
         start_date_obj = None
@@ -333,7 +333,7 @@ def get_total_spending(
     except Exception as e:
         return {
             "success": False,
-            "error": f"Lỗi khi tính tổng chi tiêu: {str(e)}"
+            "error": f"Error calculating total spending: {str(e)}"
         }
 
 @tool
@@ -343,7 +343,7 @@ def get_spending_timeseries(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Lấy dữ liệu chuỗi thời gian (daily) tổng chi tiêu để vẽ biểu đồ.
+    """Get time series data (daily) of total spending for charting.
 
     Returns JSON with fields: labels (dates), values (amounts)
     """
@@ -379,7 +379,7 @@ def get_spending_timeseries(
             }
         return {"success": False, "error": "Payment service not initialized"}
     except Exception as e:
-        return {"success": False, "error": f"Lỗi khi lấy timeseries: {str(e)}"}
+        return {"success": False, "error": f"Error retrieving timeseries: {str(e)}"}
 
 @tool
 @traceable(name="tools.finance.get_spending_timeseries_by_category")
@@ -388,7 +388,7 @@ def get_spending_timeseries_by_category(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Lấy dữ liệu chuỗi thời gian theo danh mục (mỗi danh mục một line)."""
+    """Get time series data by category (one line per category)."""
     try:
         start_date_obj = None
         end_date_obj = None
@@ -425,7 +425,7 @@ def get_spending_timeseries_by_category(
             return {"success": True, "labels": labels, "series": series_list, "unit": "VND"}
         return {"success": False, "error": "Payment service not initialized"}
     except Exception as e:
-        return {"success": False, "error": f"Lỗi khi lấy timeseries theo danh mục: {str(e)}"}
+        return {"success": False, "error": f"Error retrieving timeseries by category: {str(e)}"}
 
 @tool
 @traceable(name="tools.finance.forecast_spending")
@@ -433,7 +433,7 @@ def forecast_spending(
     user_id: Optional[str] = None,
     days_ahead: int = 14
 ) -> Dict[str, Any]:
-    """Dự báo chi tiêu trong tương lai bằng Prophet và trả về dữ liệu để vẽ biểu đồ.
+    """Forecast future spending using Prophet and return data for charting.
 
     Returns JSON fields: history {labels, values}, forecast {labels, values}
     """
@@ -454,7 +454,7 @@ def forecast_spending(
             future = executor.submit(run_async)
             series = future.result()
         if not series:
-            return {"success": False, "error": "Không có dữ liệu đủ để dự báo"}
+            return {"success": False, "error": "Insufficient data for forecasting"}
 
         df = pd.DataFrame(series)
         df.rename(columns={"date": "ds", "amount": "y"}, inplace=True)
@@ -480,7 +480,7 @@ def forecast_spending(
             "unit": "VND"
         }
     except Exception as e:
-        return {"success": False, "error": f"Lỗi khi dự báo: {str(e)}"}
+        return {"success": False, "error": f"Error forecasting: {str(e)}"}
 
 @tool
 @traceable(name="tools.finance.create_spending_chart")
@@ -489,15 +489,15 @@ def create_spending_chart(
     end_date: Optional[str] = None,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Tạo biểu đồ chi tiêu theo thời gian với dữ liệu tương tác.
+    """Create interactive spending chart over time.
     
     Args:
-        start_date: Ngày bắt đầu (YYYY-MM-DD, optional)
-        end_date: Ngày kết thúc (YYYY-MM-DD, optional)
-        user_id: ID người dùng (optional)
+        start_date: Start date (YYYY-MM-DD, optional)
+        end_date: End date (YYYY-MM-DD, optional)
+        user_id: User ID (optional)
     
     Returns:
-        Dict chứa dữ liệu biểu đồ tương tác
+        Dict containing interactive chart data
     """
     try:
         import asyncio
@@ -519,13 +519,13 @@ def create_spending_chart(
             series = future.result()
         
         if not series:
-            return {"success": False, "error": "Không có dữ liệu chi tiêu trong khoảng thời gian này"}
+            return {"success": False, "error": "No expense data in this time range"}
         
         # Format data for interactive chart
         chart_data = {
             "labels": [point["date"] for point in series],
             "datasets": [{
-                "label": "Chi tiêu (VND)",
+                "label": "Spending (VND)",
                 "data": [point["amount"] for point in series],
                 "borderColor": "rgb(75, 192, 192)",
                 "backgroundColor": "rgba(75, 192, 192, 0.2)",
@@ -538,7 +538,7 @@ def create_spending_chart(
         return {
             "success": True,
             "chart_type": "line",
-            "title": f"Biểu đồ chi tiêu từ {start_date or 'đầu'} đến {end_date or 'hiện tại'}",
+            "title": f"Spending chart from {start_date or 'beginning'} to {end_date or 'now'}",
             "data": chart_data,
             "options": {
                 "responsive": True,
@@ -549,7 +549,7 @@ def create_spending_chart(
                 "plugins": {
                     "tooltip": {
                         "callbacks": {
-                            "label": "function(context) { return 'Chi tiêu: ' + context.parsed.y.toLocaleString('vi-VN') + ' VND'; }"
+                            "label": "function(context) { return 'Spending: ' + context.parsed.y.toLocaleString('vi-VN') + ' VND'; }"
                         }
                     }
                 },
@@ -565,7 +565,7 @@ def create_spending_chart(
         }
         
     except Exception as e:
-        return {"success": False, "error": f"Lỗi khi tạo biểu đồ chi tiêu: {str(e)}"}
+        return {"success": False, "error": f"Error creating spending chart: {str(e)}"}
 
 @tool
 @traceable(name="tools.finance.create_forecast_chart")
@@ -573,14 +573,14 @@ def create_forecast_chart(
     days_ahead: int = 7,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Tạo biểu đồ dự báo chi tiêu với Prophet (7 ngày tới).
+    """Create spending forecast chart with Prophet (next 7 days).
     
     Args:
-        days_ahead: Số ngày dự báo (mặc định 7)
-        user_id: ID người dùng (optional)
+        days_ahead: Number of days to forecast (default 7)
+        user_id: User ID (optional)
     
     Returns:
-        Dict chứa dữ liệu biểu đồ dự báo tương tác
+        Dict containing interactive forecast chart data
     """
     try:
         import pandas as pd
@@ -600,7 +600,7 @@ def create_forecast_chart(
             series = future.result()
         
         if not series:
-            return {"success": False, "error": "Không có dữ liệu đủ để dự báo"}
+            return {"success": False, "error": "Insufficient data for forecasting"}
         
         # Prepare data for Prophet
         df = pd.DataFrame(series)
@@ -623,7 +623,7 @@ def create_forecast_chart(
         history_data = {
             "labels": hist["ds"].dt.strftime("%Y-%m-%d").tolist(),
             "datasets": [{
-                "label": "Chi tiêu thực tế",
+                "label": "Actual Spending",
                 "data": hist["yhat"].round(2).tolist(),
                 "borderColor": "rgb(75, 192, 192)",
                 "backgroundColor": "rgba(75, 192, 192, 0.2)",
@@ -636,7 +636,7 @@ def create_forecast_chart(
         forecast_data = {
             "labels": fut["ds"].dt.strftime("%Y-%m-%d").tolist(),
             "datasets": [{
-                "label": f"Dự báo {days_ahead} ngày tới",
+                "label": f"Forecast {days_ahead} days ahead",
                 "data": fut["yhat"].round(2).tolist(),
                 "borderColor": "rgb(255, 99, 132)",
                 "backgroundColor": "rgba(255, 99, 132, 0.2)",
@@ -659,7 +659,7 @@ def create_forecast_chart(
         return {
             "success": True,
             "chart_type": "line",
-            "title": f"Biểu đồ dự báo chi tiêu {days_ahead} ngày tới",
+            "title": f"Spending forecast chart {days_ahead} days ahead",
             "data": combined_data,
             "options": {
                 "responsive": True,
@@ -690,7 +690,7 @@ def create_forecast_chart(
         }
         
     except Exception as e:
-        return {"success": False, "error": f"Lỗi khi tạo biểu đồ dự báo: {str(e)}"}
+        return {"success": False, "error": f"Error creating forecast chart: {str(e)}"}
 
 
 class FinanceAgent(BaseAgent):
@@ -721,54 +721,54 @@ class FinanceAgent(BaseAgent):
             ]
     
     def get_system_prompt(self) -> str:
-        return """Bạn là trợ lý tài chính thông minh chuyên về quản lý chi tiêu và theo dõi lịch sử thanh toán.
+        return """You are an intelligent financial assistant specialized in expense management and payment history tracking.
 
-QUY TẮC NGÔN NGỮ:
-- Mặc định trả lời bằng tiếng Việt.
-- Nếu người dùng dùng ngôn ngữ khác, hãy trả lời bằng chính ngôn ngữ đó trong lượt trao đổi.
+LANGUAGE RULES:
+- By default, respond in Vietnamese.
+- If user uses a different language, respond in that same language for the current exchange.
 
-Bạn có thể:
-- Thêm chi tiêu mới với thông tin đầy đủ (1 chi tiêu)
-- Thêm nhiều chi tiêu cùng lúc từ một câu mô tả
-- Xem lịch sử chi tiêu theo thời gian
-- Lọc chi tiêu theo danh mục (Food, Transportation, Miscellaneous)
-- Tính tổng chi tiêu trong khoảng thời gian
-- Cập nhật hoặc xóa chi tiêu
-- Phân tích xu hướng chi tiêu
+You can:
+- Add new expenses with complete information (1 expense)
+- Add multiple expenses at once from a description string
+- View expense history over time
+- Filter expenses by category (Food, Transportation, Miscellaneous)
+- Calculate total spending in time range
+- Update or delete expenses
+- Analyze spending trends
 
-CÁC TOOL CHI TIÊU:
-1. add_expense: Thêm 1 chi tiêu đơn lẻ
-   - Dùng khi: "Thêm chi tiêu 50k tiền ăn"
-   - Tham số: summary, amount, category, date
+EXPENSE TOOLS:
+1. add_expense: Add single expense
+   - Use when: "Add expense 50k for food"
+   - Parameters: summary, amount, category, date
 
-2. add_multiple_expenses: Thêm nhiều chi tiêu cùng lúc
-   - Dùng khi: "Thêm chi tiêu hôm nay 20k tiền ăn, 50k tiền xăng, 60k tiền giặt"
-   - Tham số: expenses_text, date
-   - Tự động phân tích và phân loại chi tiêu
+2. add_multiple_expenses: Add multiple expenses at once
+   - Use when: "Add expenses today 20k food, 50k gas, 60k laundry"
+   - Parameters: expenses_text, date
+   - Automatically analyzes and categorizes expenses
 
-3. create_spending_chart: Tạo biểu đồ chi tiêu tương tác
-   - Dùng khi: "Vẽ biểu đồ chi tiêu tháng này", "Hiển thị biểu đồ chi tiêu từ ngày X đến ngày Y"
-   - Tham số: start_date, end_date, user_id
-   - Trả về dữ liệu biểu đồ Chart.js tương tác
+3. create_spending_chart: Create interactive spending chart
+   - Use when: "Draw spending chart this month", "Show spending chart from date X to date Y"
+   - Parameters: start_date, end_date, user_id
+   - Returns interactive Chart.js chart data
 
-4. create_forecast_chart: Tạo biểu đồ dự báo chi tiêu
-   - Dùng khi: "Dự báo chi tiêu 7 ngày tới", "Vẽ biểu đồ dự báo chi tiêu"
-   - Tham số: days_ahead, user_id
-   - Sử dụng Prophet model để dự báo
+4. create_forecast_chart: Create spending forecast chart
+   - Use when: "Forecast spending next 7 days", "Draw spending forecast chart"
+   - Parameters: days_ahead, user_id
+   - Uses Prophet model for forecasting
 
-Các trường thông tin chi tiêu:
-- Summary: Mô tả ngắn gọn về khoản chi
-- Amount: Số tiền chi (đã chuyển đổi sang VND)
-- Category: Loại chi tiêu (Food, Transportation, Miscellaneous)
-- Date: Ngày giao dịch
+Expense information fields:
+- Summary: Brief description of expense
+- Amount: Expense amount (converted to VND)
+- Category: Expense category (Food, Transportation, Miscellaneous)
+- Date: Transaction date
 
-Lưu ý quan trọng:
-- Luôn chuyển đổi số tiền sang VND
-- Sử dụng định dạng ngày ISO: YYYY-MM-DD
-- Phân loại chi tiêu chính xác theo 3 danh mục
-- Cung cấp thông tin chi tiết và hữu ích cho người dùng
-- Luôn lưu dữ liệu vào cơ sở dữ liệu Payment History
-- Ưu tiên sử dụng add_multiple_expenses khi người dùng nhập nhiều chi tiêu trong một câu
+Important notes:
+- Always convert amounts to VND
+- Use ISO date format: YYYY-MM-DD
+- Accurately categorize expenses into 3 categories
+- Provide detailed and useful information to users
+- Always save data to Payment History database
+- Prioritize using add_multiple_expenses when user enters multiple expenses in one sentence
 """
     
     def get_tools(self) -> List[Any]:

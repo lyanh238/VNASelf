@@ -43,7 +43,7 @@ class NoteService:
         user_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         request_context: Optional[str] = None,
-    ) -> Optional[Note]:
+    ) -> Optional[dict]:
         if not self.SessionLocal:
             return None
         try:
@@ -58,7 +58,7 @@ class NoteService:
                 session.add(note)
                 session.commit()
                 session.refresh(note)
-                return note
+                return note.to_dict()
         except SQLAlchemyError as e:
             print(f"Error creating note: {str(e)}")
             return None
@@ -71,7 +71,7 @@ class NoteService:
         user_id: Optional[str] = None,
         limit: int = 20,
         category: Optional[str] = None,
-    ) -> List[Note]:
+    ) -> List[dict]:
         if not self.SessionLocal:
             return []
         try:
@@ -81,7 +81,9 @@ class NoteService:
                     query = query.filter(Note.user_id == user_id)
                 if category:
                     query = query.filter(Note.category == category)
-                return query.order_by(Note.id.desc()).limit(limit).all()
+                notes = query.order_by(Note.id.desc()).limit(limit).all()
+                # Convert Note objects to dictionaries
+                return [note.to_dict() for note in notes]
         except SQLAlchemyError as e:
             print(f"Error fetching notes: {str(e)}")
             return []
@@ -89,7 +91,7 @@ class NoteService:
             print(f"Unexpected error fetching notes: {str(e)}")
             return []
 
-    async def get_note(self, note_id: int, user_id: Optional[str] = None) -> Optional[Note]:
+    async def get_note(self, note_id: int, user_id: Optional[str] = None) -> Optional[dict]:
         if not self.SessionLocal:
             return None
         try:
@@ -97,7 +99,10 @@ class NoteService:
                 query = session.query(Note).filter(Note.id == note_id, Note.is_deleted == False)
                 if user_id:
                     query = query.filter(Note.user_id == user_id)
-                return query.first()
+                note = query.first()
+                if note:
+                    return note.to_dict()
+                return None
         except SQLAlchemyError as e:
             print(f"Error fetching note: {str(e)}")
             return None
@@ -172,7 +177,7 @@ class NoteService:
             print(f"Unexpected error deleting note: {str(e)}")
             return False
 
-    async def get_notes_by_user(self, user_id: str, limit: int = 20, category: Optional[str] = None) -> List[Note]:
+    async def get_notes_by_user(self, user_id: str, limit: int = 20, category: Optional[str] = None) -> List[dict]:
         # Compatibility wrapper for NoteAgent
         return await self.get_notes(user_id=user_id, limit=limit, category=category)
 

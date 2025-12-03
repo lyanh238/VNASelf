@@ -2,9 +2,8 @@
 State Manager for the multi-agent system
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.messages import BaseMessage
 
 
 class StateManager:

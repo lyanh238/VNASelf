@@ -7,6 +7,7 @@ import json
 import uuid
 import os
 import traceback
+import re
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
@@ -51,6 +52,25 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 # OCR output directory
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+# Filename helpers
+def sanitize_filename(filename: str) -> str:
+    """Remove path traversal and unsafe characters while keeping original name."""
+    name = Path(filename).name
+    sanitized = re.sub(r"[^A-Za-z0-9._-]", "_", name)
+    return sanitized or "upload"
+
+
+def ensure_unique_filename(directory: Path, filename: str) -> str:
+    """Ensure filename uniqueness without losing original context."""
+    candidate = filename
+    base, ext = os.path.splitext(filename)
+    counter = 1
+    while (directory / candidate).exists():
+        candidate = f"{base}_{counter}{ext}"
+        counter += 1
+    return candidate
+
 
 # Pydantic models
 class ChatMessage(BaseModel):
@@ -947,9 +967,11 @@ async def upload_file(file: UploadFile = File(...), user_id: Optional[str] = For
                 detail=f"File type not supported. Allowed types: {', '.join(allowed_extensions)}"
             )
         
-        # Generate unique filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}{file_ext}"
+        # Keep original filename (sanitized) and only append suffix if needed
+        sanitized = sanitize_filename(file.filename)
+        if not sanitized.lower().endswith(file_ext):
+            sanitized = f"{sanitized}{file_ext}"
+        safe_filename = ensure_unique_filename(UPLOAD_DIR, sanitized)
         file_path = UPLOAD_DIR / safe_filename
         
         # Save uploaded file
@@ -991,9 +1013,11 @@ async def get_ocr_html(filename: str):
 async def upload_and_process(
     file: UploadFile = File(...), 
     user_id: Optional[str] = Form(None),
-    thread_id: Optional[str] = Form(None)
+    thread_id: Optional[str] = Form(None),
+    ocr_method: Optional[str] = Form("docling"),
+    user_prompt: Optional[str] = Form(None)
 ):
-    """Upload a file and immediately process it with OCR."""
+    """Upload a file and immediately process it with OCR. Supports both Docling and OpenAI Vision."""
     try:
         if not multi_agent_system:
             raise HTTPException(status_code=500, detail="Multi-agent system not initialized")
@@ -1008,9 +1032,19 @@ async def upload_and_process(
                 detail=f"File type not supported. Allowed types: {', '.join(allowed_extensions)}"
             )
         
-        # Generate unique filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}{file_ext}"
+        # Validate OCR method
+        ocr_method_lower = (ocr_method or "docling").lower()
+        if ocr_method_lower not in ["docling", "openai"]:
+            raise HTTPException(
+                status_code=400,
+                detail="OCR method must be 'docling' or 'openai'"
+            )
+        
+        # Keep original filename (sanitized) and append suffix only when necessary
+        sanitized = sanitize_filename(file.filename)
+        if not sanitized.lower().endswith(file_ext):
+            sanitized = f"{sanitized}{file_ext}"
+        safe_filename = ensure_unique_filename(UPLOAD_DIR, sanitized)
         file_path = UPLOAD_DIR / safe_filename
         
         # Save uploaded file
@@ -1025,13 +1059,20 @@ async def upload_and_process(
         current_thread_id = thread_id or str(uuid.uuid4())
         current_user_id = user_id or "default_user"
         
-        # Use supervisor to route to OCR based on context
-        if file_ext == ".pdf":
-            # PDFs always go to OCR
-            process_message = f"Xử lý file PDF này bằng OCR: {str(file_path)}"
+        # Build process message based on method and user prompt
+        # Prompt comes from input field, not from separate container
+        if ocr_method_lower == "openai" and user_prompt:
+            # Use OpenAI with custom prompt from input field
+            process_message = f"Tôi đã tải lên một hình ảnh tại {str(file_path)}. Hãy sử dụng process_document_with_method với method='openai' và user_prompt='{user_prompt}' để xử lý nó theo yêu cầu."
+        elif ocr_method_lower == "openai":
+            # Use OpenAI with default prompt
+            process_message = f"Tôi đã tải lên một hình ảnh tại {str(file_path)}. Hãy sử dụng process_document_with_method với method='openai' để xử lý nó."
+        elif file_ext == ".pdf":
+            # PDFs always use Docling
+            process_message = f"Xử lý file PDF này bằng OCR với Docling: {str(file_path)}"
         else:
-            # Images: Use OCR for text extraction
-            process_message = f"Tôi đã tải lên một hình ảnh tại {str(file_path)}. Hãy xử lý nó bằng OCR."
+            # Images with Docling
+            process_message = f"Tôi đã tải lên một hình ảnh tại {str(file_path)}. Hãy xử lý nó bằng OCR với Docling."
         
         result = await multi_agent_system.process_message(
             process_message,

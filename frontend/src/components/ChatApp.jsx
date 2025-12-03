@@ -36,6 +36,8 @@ const ChatApp = () => {
   const [selectedTool, setSelectedTool] = useState(null)
   const [uploadedFile, setUploadedFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [ocrMethod, setOcrMethod] = useState('docling')
+  const [ocrPrompt, setOcrPrompt] = useState('')
   const inputRef = useRef(null)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -373,7 +375,7 @@ const ChatApp = () => {
     } else if (selectedTool === 'document-search') {
       return "Nhập từ khóa tìm kiếm tài liệu..."
     } else if (selectedTool === 'ocr-process') {
-      return "upload ảnh hoặc nhập đường dẫn"
+      return "Nhập yêu cầu xử lý ảnh (hoặc upload ảnh)..."
     }
     return "How can I help you today?"
   }
@@ -390,6 +392,13 @@ const ChatApp = () => {
   }
 
   const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
@@ -430,11 +439,14 @@ const ChatApp = () => {
     setIsUploading(true)
     setShowWelcome(false)
 
+    // Get prompt from input field (inputValue) instead of container
+    const promptToUse = inputValue.trim() || ocrPrompt.trim()
+
     // Show user message about file upload
     const userMessage = {
       id: Date.now(),
       type: 'user',
-      content: `Đang xử lý file: ${uploadedFile.name}`,
+      content: `Đang xử lý file: ${uploadedFile.name} (${ocrMethod})${promptToUse ? ` với yêu cầu: ${promptToUse}` : ''}`,
       timestamp: new Date().toISOString()
     }
     setMessages(prev => [...prev, userMessage])
@@ -443,6 +455,10 @@ const ChatApp = () => {
       const formData = new FormData()
       formData.append('file', uploadedFile)
       formData.append('user_id', user?.id || user?.email || 'default_user')
+      formData.append('ocr_method', ocrMethod)
+      if (promptToUse) {
+        formData.append('user_prompt', promptToUse)
+      }
       if (currentThreadId) {
         formData.append('thread_id', currentThreadId)
       }
@@ -471,6 +487,8 @@ const ChatApp = () => {
         setUploadedFile(null)
         setSelectedTool(null)
         setIsWebSearchMode(false)
+        setOcrPrompt('')
+        setInputValue('') // Clear input after processing
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
         }
@@ -734,7 +752,7 @@ const ChatApp = () => {
                     placeholder={getPlaceholderText()}
                     value={inputValue}
                     onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyDown}
                     className="chat-input-field"
                     disabled={isLoading || isUploading}
                   />
@@ -767,9 +785,9 @@ const ChatApp = () => {
                       onChange={(e) => setSelectedModel(e.target.value)}
                       className="model-select"
                     >
-                      <option value="gpt-4o">GPT-4o</option>
+                      {/* <option value="gpt-4o">GPT-4o</option> */}
                       <option value="gpt-4o-mini">GPT-4o Mini</option>
-                      <option value="gpt-4.1">GPT-4.1</option>
+                      {/* <option value="gpt-4.1">GPT-4.1</option> */}
                     </select>
                     <button 
                       className="send-btn" 
@@ -874,40 +892,22 @@ const ChatApp = () => {
               <div className="chat-input-container">
                 {uploadedFile && (
                   <div style={{
-                    padding: '8px 12px',
+                    padding: '12px',
                     marginBottom: '8px',
                     background: 'var(--bg-secondary)',
                     borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
                     border: '1px solid var(--border-color)'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Upload size={16} />
-                      <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                        {uploadedFile.name}
-                      </span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        ({(uploadedFile.size / 1024).toFixed(1)} KB)
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={handleFileUpload}
-                        disabled={isUploading || isLoading}
-                        style={{
-                          padding: '4px 12px',
-                          background: '#8b5cf6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: (isUploading || isLoading) ? 'not-allowed' : 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        {isUploading ? 'Đang xử lý...' : 'Xử lý OCR'}
-                      </button>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Upload size={16} />
+                        <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                          {uploadedFile.name}
+                        </span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                        </span>
+                      </div>
                       <button
                         onClick={handleRemoveFile}
                         style={{
@@ -919,6 +919,58 @@ const ChatApp = () => {
                         }}
                       >
                         <X size={16} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <label style={{ fontSize: '12px', color: 'var(--text-muted)', minWidth: '80px' }}>
+                          Model:
+                        </label>
+                        <select
+                          value={ocrMethod}
+                          onChange={(e) => setOcrMethod(e.target.value)}
+                          style={{
+                            flex: 1,
+                            padding: '6px 8px',
+                            background: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '12px'
+                          }}
+                          disabled={isUploading || isLoading}
+                        >
+                          <option value="docling">Docling (PDF & images)</option>
+                          <option value="openai">OpenAI Vision (images)</option>
+                        </select>
+                      </div>
+                          {ocrMethod === 'openai' && (
+                        <div style={{ 
+                          padding: '8px', 
+                          background: 'var(--bg-tertiary)', 
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          color: 'var(--text-muted)',
+                          fontStyle: 'italic'
+                        }}>
+                           Upload your image and select the button "OCR Processing"
+                        </div>
+                      )}
+                      <button
+                        onClick={handleFileUpload}
+                        disabled={isUploading || isLoading}
+                        style={{
+                          padding: '6px 12px',
+                          background: '#8b5cf6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: (isUploading || isLoading) ? 'not-allowed' : 'pointer',
+                          fontSize: '12px',
+                          alignSelf: 'flex-end'
+                        }}
+                      >
+                        {isUploading ? 'Đang xử lý...' : 'Xử lý OCR'}
                       </button>
                     </div>
                   </div>
@@ -966,9 +1018,10 @@ const ChatApp = () => {
                   <input
                     ref={inputRef}
                     type="text"
-                    placeholder={isWebSearchMode ? "Nhập từ khóa tìm kiếm web..." : "Type your message..."}
+                    placeholder={isWebSearchMode ? "Input keywords to search on web..." : "Type your message..."}
                     value={inputValue}
                     onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
                     className="chat-input-field"
                     disabled={isLoading || isUploading}
                   />

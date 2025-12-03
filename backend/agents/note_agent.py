@@ -138,14 +138,14 @@ class NoteAgent(BaseAgent):
                 
                 return {
                     "success": True,
-                    "message": f"Đã tạo ghi chú thành công",
+                    "message": f"Note created successfully",
                     "note": note
                 }
                 
             except Exception as e:
                 return {
                     "success": False,
-                    "error": f"Lỗi khi tạo ghi chú: {str(e)}"
+                    "error": f"Error creating note: {str(e)}"
                 }
         
         return record_note
@@ -176,13 +176,13 @@ class NoteAgent(BaseAgent):
                 else:
                     return {
                         "success": False,
-                        "error": f"Không tìm thấy ghi chú với ID {note_id}"
+                        "error": f"Note with ID {note_id} not found"
                     }
                 
             except Exception as e:
                 return {
                     "success": False,
-                    "error": f"Lỗi khi lấy ghi chú: {str(e)}"
+                    "error": f"Error retrieving note: {str(e)}"
                 }
         
         return get_note
@@ -241,19 +241,19 @@ class NoteAgent(BaseAgent):
                 if updated_note:
                     return {
                         "success": True,
-                        "message": f"Đã cập nhật ghi chú '{updated_note['title']}' thành công",
+                        "message": f"Note '{updated_note['title']}' updated successfully",
                         "note": updated_note
                     }
                 else:
                     return {
                         "success": False,
-                        "error": f"Không tìm thấy ghi chú với ID {note_id}"
+                        "error": f"Note with ID {note_id} not found"
                     }
                 
             except Exception as e:
                 return {
                     "success": False,
-                    "error": f"Lỗi khi cập nhật ghi chú: {str(e)}"
+                    "error": f"Error updating note: {str(e)}"
                 }
         
         return update_note
@@ -279,18 +279,18 @@ class NoteAgent(BaseAgent):
                 if success:
                     return {
                         "success": True,
-                        "message": f"Đã xóa ghi chú với ID {note_id} thành công"
+                        "message": f"Note with ID {note_id} deleted successfully"
                     }
                 else:
                     return {
                         "success": False,
-                        "error": f"Không tìm thấy ghi chú với ID {note_id}"
+                        "error": f"Note with ID {note_id} not found"
                     }
                 
             except Exception as e:
                 return {
                     "success": False,
-                    "error": f"Lỗi khi xóa ghi chú: {str(e)}"
+                    "error": f"Error deleting note: {str(e)}"
                 }
         
         return delete_note
@@ -328,7 +328,7 @@ class NoteAgent(BaseAgent):
             except Exception as e:
                 return {
                     "success": False,
-                    "error": f"Lỗi khi lấy danh sách ghi chú: {str(e)}"
+                    "error": f"Error retrieving note list: {str(e)}"
                 }
         
         return list_notes
@@ -366,7 +366,7 @@ class NoteAgent(BaseAgent):
             except Exception as e:
                 return {
                     "success": False,
-                    "error": f"Lỗi khi tìm kiếm ghi chú: {str(e)}"
+                    "error": f"Error searching notes: {str(e)}"
                 }
         
         return search_notes
@@ -406,55 +406,55 @@ class NoteAgent(BaseAgent):
             except Exception as e:
                 return {
                     "success": False,
-                    "error": f"Lỗi khi phân loại ghi chú: {str(e)}"
+                    "error": f"Error categorizing note: {str(e)}"
                 }
         
         return categorize_note
     
     def get_system_prompt(self) -> str:
-        return """Bạn là Note Agent chuyên về quản lý ghi chú thông minh.
+        return """You are a Note Agent specialized in intelligent note management.
 
-QUY TẮC NGÔN NGỮ:
-- Mặc định trả lời bằng tiếng Việt.
-- Nếu người dùng sử dụng ngôn ngữ khác, trả lời bằng đúng ngôn ngữ đó.
+LANGUAGE RULES:
+- By default, respond in Vietnamese.
+- If user uses a different language, respond in that same language.
 
-NHIỆM VỤ CHÍNH:
-- Tạo, đọc, cập nhật, xóa ghi chú
-- Tự động phân loại ghi chú theo danh mục phù hợp
-- Trích xuất tags từ nội dung ghi chú
-- Xác định mức độ ưu tiên của ghi chú
-- Tìm kiếm và lọc ghi chú theo nhiều tiêu chí
+MAIN TASKS:
+- Create, read, update, delete notes
+- Automatically categorize notes into appropriate categories
+- Extract tags from note content
+- Determine note priority level
+- Search and filter notes by multiple criteria
 
-DANH MỤC TỰ ĐỘNG:
-- work: Công việc, họp, dự án, nhiệm vụ
-- personal: Cá nhân, gia đình, bạn bè
-- study: Học tập, giáo dục, nghiên cứu
-- finance: Tài chính, tiền bạc, đầu tư
-- health: Sức khỏe, y tế, thuốc men
-- travel: Du lịch, chuyến đi, nghỉ dưỡng
-- shopping: Mua sắm, sản phẩm, cửa hàng
-- ideas: Ý tưởng, suy nghĩ, sáng tạo
-- reminders: Nhắc nhở, hạn chót, khẩn cấp
-- general: Chung, tổng quát
+AUTOMATIC CATEGORIES:
+- work: Work, meetings, projects, tasks
+- personal: Personal, family, friends
+- study: Study, education, research
+- finance: Finance, money, investment
+- health: Health, medical, medicine
+- travel: Travel, trips, vacation
+- shopping: Shopping, products, stores
+- ideas: Ideas, thoughts, creativity
+- reminders: Reminders, deadlines, urgent
+- general: General, miscellaneous
 
-MỨC ĐỘ ƯU TIÊN:
-- high: Khẩn cấp, quan trọng, hạn chót
-- medium: Bình thường (mặc định)
-- low: Ý tưởng, có thể, sau này
+PRIORITY LEVELS:
+- high: Urgent, important, deadlines
+- medium: Normal (default)
+- low: Ideas, maybe, later
 
-QUY TRÌNH LÀM VIỆC:
-1. Phân tích yêu cầu người dùng
-2. Xác định loại thao tác (tạo/sửa/xóa/tìm)
-3. Tự động phân loại và gán tags nếu cần
-4. Thực hiện thao tác với cơ sở dữ liệu
-5. Trả về kết quả rõ ràng và hữu ích
+WORKFLOW:
+1. Analyze user request
+2. Determine operation type (create/update/delete/search)
+3. Automatically categorize and assign tags if needed
+4. Execute operation with database
+5. Return clear and useful results
 
-LƯU Ý QUAN TRỌNG:
-- Luôn sử dụng tiếng Việt để giao tiếp
-- Tự động phân loại ghi chú khi không được chỉ định
-- Trích xuất tags từ nội dung một cách thông minh
-- Cung cấp phản hồi rõ ràng về kết quả thao tác
-- Hỗ trợ tìm kiếm linh hoạt theo từ khóa và danh mục"""
+IMPORTANT NOTES:
+- Always use Vietnamese for communication
+- Automatically categorize notes when not specified
+- Intelligently extract tags from content
+- Provide clear feedback on operation results
+- Support flexible search by keywords and categories"""
     
     def get_tools(self) -> List[Any]:
         """Get note management tools."""

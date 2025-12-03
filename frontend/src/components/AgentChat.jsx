@@ -13,6 +13,8 @@ const AgentChat = ({ agent, onBack }) => {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [uploadedFile, setUploadedFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [ocrMethod, setOcrMethod] = useState('docling')
+  const [ocrPrompt, setOcrPrompt] = useState('')
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -122,19 +124,34 @@ const AgentChat = ({ agent, onBack }) => {
     }
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
   const sendMessage = async (content = inputValue) => {
-    if (!content.trim()) return
+    // For OCR agent: if there's both file and prompt, auto-process OCR
+    if (agent.id === 'ocr' && uploadedFile && content.trim()) {
+      // Auto-trigger OCR processing with prompt
+      await handleFileUploadWithPrompt(content.trim())
+      return
+    }
+
+    if (!content.trim() && !uploadedFile) return
 
     const userMessage = {
       id: Date.now(),
       type: 'user',
-      content: content.trim(),
+      content: content.trim() || `Uploaded file: ${uploadedFile?.name || ''}`,
       timestamp: new Date().toISOString()
     }
 
     setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
     setShowWelcome(false)
+    const promptToUse = content.trim()
     setInputValue('')
 
     try {
@@ -144,7 +161,7 @@ const AgentChat = ({ agent, onBack }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: content.trim(),
+          content: promptToUse,
           thread_id: currentThreadId,
           user_id: user?.id || 'default_user',
           agent_type: agent.id // Specify which agent to use
@@ -202,17 +219,21 @@ const AgentChat = ({ agent, onBack }) => {
     }
   }
 
-  const handleFileUpload = async () => {
+  const handleFileUploadWithPrompt = async (prompt = null) => {
     if (!uploadedFile) return
 
     setIsUploading(true)
+    setIsLoading(true)
     setShowWelcome(false)
+
+    // Get prompt from parameter, input field, or container
+    const promptToUse = prompt || inputValue.trim() || ocrPrompt.trim()
 
     // Show user message about file upload
     const userMessage = {
       id: Date.now(),
       type: 'user',
-      content: `Đã tải lên file: ${uploadedFile.name}`,
+      content: promptToUse || `Uploaded file: ${uploadedFile.name}`,
       timestamp: new Date().toISOString()
     }
     setMessages(prev => [...prev, userMessage])
@@ -231,6 +252,10 @@ const AgentChat = ({ agent, onBack }) => {
       const formData = new FormData()
       formData.append('file', uploadedFile)
       formData.append('user_id', user?.id || user?.email || 'default_user')
+      formData.append('ocr_method', ocrMethod)
+      if (promptToUse) {
+        formData.append('user_prompt', promptToUse)
+      }
       if (currentThreadId) {
         formData.append('thread_id', currentThreadId)
       }
@@ -262,6 +287,8 @@ const AgentChat = ({ agent, onBack }) => {
           return [...filtered, assistantMessage]
         })
         setUploadedFile(null)
+        setOcrPrompt('')
+        setInputValue('') // Clear input after processing
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
         }
@@ -274,13 +301,19 @@ const AgentChat = ({ agent, onBack }) => {
       const errorMessage = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: `Lỗi khi xử lý file: ${error.message}`,
+        content: `Error processing file: ${error.message}`,
         timestamp: new Date().toISOString()
       }
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsUploading(false)
+      setIsLoading(false)
     }
+  }
+
+  const handleFileUpload = async () => {
+    // Use the new function with prompt from input
+    await handleFileUploadWithPrompt()
   }
 
   const handleRemoveFile = () => {
@@ -366,40 +399,22 @@ const AgentChat = ({ agent, onBack }) => {
           <div className="chat-input-container">
             {uploadedFile && (
               <div style={{
-                padding: '8px 12px',
+                padding: '12px',
                 marginBottom: '8px',
                 background: 'var(--bg-secondary)',
                 borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
                 border: '1px solid var(--border-color)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Upload size={16} />
-                  <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                    {uploadedFile.name}
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    ({(uploadedFile.size / 1024).toFixed(1)} KB)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={handleFileUpload}
-                    disabled={isUploading}
-                    style={{
-                      padding: '4px 12px',
-                      background: agent.color,
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: isUploading ? 'not-allowed' : 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    {isUploading ? 'Đang xử lý...' : 'Xử lý OCR'}
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Upload size={16} />
+                    <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                      {uploadedFile.name}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
                   <button
                     onClick={handleRemoveFile}
                     style={{
@@ -412,6 +427,73 @@ const AgentChat = ({ agent, onBack }) => {
                   >
                     <X size={16} />
                   </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <label style={{ fontSize: '12px', color: 'var(--text-muted)', minWidth: '80px' }}>
+                      Phương pháp:
+                    </label>
+                    <select
+                      value={ocrMethod}
+                      onChange={(e) => setOcrMethod(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '4px',
+                        color: 'var(--text-primary)',
+                        fontSize: '12px'
+                      }}
+                      disabled={isUploading}
+                    >
+                      <option value="docling">Docling (PDF & Image)</option>
+                      <option value="openai">OpenAI Vision (Image)</option>
+                    </select>
+                  </div>
+                  {ocrMethod === 'openai' && (
+                    <div style={{ 
+                      padding: '8px', 
+                      background: 'var(--bg-tertiary)', 
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      fontStyle: 'italic'
+                    }}>
+                     Enter your prompt in the input field above and press Enter to process
+                    </div>
+                  )}
+                  {!inputValue.trim() && (
+                    <button
+                      onClick={handleFileUpload}
+                      disabled={isUploading || isLoading}
+                      style={{
+                        padding: '6px 12px',
+                        background: agent.color,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: (isUploading || isLoading) ? 'not-allowed' : 'pointer',
+                        fontSize: '12px',
+                        alignSelf: 'flex-end'
+                      }}
+                    >
+                      {isUploading ? 'Processing...' : 'Process OCR'}
+                    </button>
+                  )}
+                  {inputValue.trim() && (
+                    <div style={{ 
+                      padding: '8px', 
+                      background: 'var(--bg-tertiary)', 
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      fontStyle: 'italic',
+                      alignSelf: 'flex-end'
+                    }}>
+                      Press Enter or click Send to process
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -435,12 +517,14 @@ const AgentChat = ({ agent, onBack }) => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder={`How can ${agent.name} help you today?`}
+                placeholder={agent.id === 'ocr' 
+                  ? (uploadedFile ? "Enter your prompt and press Enter to process..." : "Upload an image and enter your prompt...")
+                  : `How can ${agent.name} help you today?`}
                 value={inputValue}
                 onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 className="chat-input-field"
-                disabled={isUploading}
+                disabled={isUploading || isLoading}
               />
               <div className="input-controls-right">
                 <button 
@@ -602,40 +686,22 @@ const AgentChat = ({ agent, onBack }) => {
           <div className="chat-input-container">
             {uploadedFile && (
               <div style={{
-                padding: '8px 12px',
+                padding: '12px',
                 marginBottom: '8px',
                 background: 'var(--bg-secondary)',
                 borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
                 border: '1px solid var(--border-color)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Upload size={16} />
-                  <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                    {uploadedFile.name}
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    ({(uploadedFile.size / 1024).toFixed(1)} KB)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={handleFileUpload}
-                    disabled={isUploading || isLoading}
-                    style={{
-                      padding: '4px 12px',
-                      background: agent.color,
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: (isUploading || isLoading) ? 'not-allowed' : 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    {isUploading ? 'Đang xử lý...' : 'Xử lý OCR'}
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Upload size={16} />
+                    <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                      {uploadedFile.name}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
                   <button
                     onClick={handleRemoveFile}
                     style={{
@@ -648,6 +714,73 @@ const AgentChat = ({ agent, onBack }) => {
                   >
                     <X size={16} />
                   </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <label style={{ fontSize: '12px', color: 'var(--text-muted)', minWidth: '80px' }}>
+                      Phương pháp:
+                    </label>
+                    <select
+                      value={ocrMethod}
+                      onChange={(e) => setOcrMethod(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '4px',
+                        color: 'var(--text-primary)',
+                        fontSize: '12px'
+                      }}
+                      disabled={isUploading || isLoading}
+                    >
+                      <option value="docling">Docling (PDF & Ảnh)</option>
+                      <option value="openai">OpenAI Vision (Chỉ ảnh)</option>
+                    </select>
+                  </div>
+                  {ocrMethod === 'openai' && (
+                    <div style={{ 
+                      padding: '8px', 
+                      background: 'var(--bg-tertiary)', 
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      fontStyle: 'italic'
+                    }}>
+                      💡 Enter your prompt in the input field above and press Enter to process
+                    </div>
+                  )}
+                  {!inputValue.trim() && (
+                    <button
+                      onClick={handleFileUpload}
+                      disabled={isUploading || isLoading}
+                      style={{
+                        padding: '6px 12px',
+                        background: agent.color,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: (isUploading || isLoading) ? 'not-allowed' : 'pointer',
+                        fontSize: '12px',
+                        alignSelf: 'flex-end'
+                      }}
+                    >
+                      {isUploading ? 'Processing...' : 'Process OCR'}
+                    </button>
+                  )}
+                  {inputValue.trim() && (
+                    <div style={{ 
+                      padding: '8px', 
+                      background: 'var(--bg-tertiary)', 
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      fontStyle: 'italic',
+                      alignSelf: 'flex-end'
+                    }}>
+                      Press Enter or click Send to process
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -672,10 +805,12 @@ const AgentChat = ({ agent, onBack }) => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder={`Type your message to ${agent.name}...`}
+                placeholder={agent.id === 'ocr' 
+                  ? (uploadedFile ? "Enter your prompt and press Enter to process..." : "Upload an image and enter your prompt...")
+                  : `Type your message to ${agent.name}...`}
                 value={inputValue}
                 onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 className="chat-input-field"
                 disabled={isLoading || isUploading}
               />
@@ -683,7 +818,7 @@ const AgentChat = ({ agent, onBack }) => {
                  <button 
                    className="send-btn" 
                    onClick={() => sendMessage()}
-                   disabled={!inputValue.trim() || isLoading}
+                   disabled={(!inputValue.trim() && !uploadedFile) || isLoading || isUploading}
                  >
                    →
                  </button>

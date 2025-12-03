@@ -220,6 +220,7 @@ class PaymentHistoryService:
     async def get_daily_timeseries_by_category(
         self,
         user_id: Optional[str] = None,
+        id: Optional[int]=None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> Dict[str, List[Dict[str, Any]]]:
@@ -230,6 +231,8 @@ class PaymentHistoryService:
                 query = session.query(PaymentHistory)
                 if user_id:
                     query = query.filter(PaymentHistory.user_id == user_id)
+                if id:
+                    quey = query.filter(PaymentHistory.id == id)
                 if start_date:
                     query = query.filter(PaymentHistory.date >= start_date)
                 if end_date:
